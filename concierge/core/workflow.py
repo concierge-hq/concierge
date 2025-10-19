@@ -99,9 +99,9 @@ class WorkflowSession:
         
         tool = stage.tools[tool_name]
         
-        # Execute tool (elicitation handled by LLM, not pre-checked)
+        # Execute tool with stage-local state (elicitation handled by LLM, not pre-checked)
         try:
-            result = await tool.execute(self.state, **args)
+            result = await tool.execute(stage.local_state, **args)
             self.history.append({"action": "tool", "tool": tool_name, "args": args, "result": result})
             
             return {
@@ -151,7 +151,7 @@ class WorkflowSession:
             "type": "transitioned",
             "from": stage.name,
             "to": target_stage,
-            "prompt": target.generate_prompt(self.state)
+            "prompt": target.generate_prompt(target.local_state)
         }
     
     def _handle_elicitation(self, action: dict) -> dict:

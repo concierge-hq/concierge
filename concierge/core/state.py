@@ -9,14 +9,14 @@ import json
 
 class State:
     """
-    Immutable state container.
+    Mutable state container for workflow sessions.
     Store any Python objects - Pydantic models, dataclasses, plain values, dicts, etc.
     
     Example with plain values:
         state = State()
-        state = state.set("user_id", "123")
-        state = state.set("counter", 0)
-        state = state.set("items", ["item1", "item2"])
+        state.set("user_id", "123")
+        state.set("counter", 0)
+        state.set("items", ["item1", "item2"])
     
     Example with Pydantic objects:
         from pydantic import BaseModel
@@ -33,8 +33,8 @@ class State:
         cart = Cart(items=["item1"], total=99.99)
         
         state = State()
-        state = state.set("user", user)      
-        state = state.set("cart", cart)      
+        state.set("user", user)
+        state.set("cart", cart)
         
         # Access
         user = state.get("user")
@@ -42,9 +42,9 @@ class State:
     
     Example with mixed types:
         state = State()
-        state = state.set("user", User(id="123", email="test@example.com"))  # Object
-        state = state.set("counter", 0)                                       # Int
-        state = state.set("config", {"debug": True, "timeout": 30})          # Dict
+        state.set("user", User(id="123", email="test@example.com"))  # Object
+        state.set("counter", 0)                                       # Int
+        state.set("config", {"debug": True, "timeout": 30})          # Dict
     """
     
     def __init__(self, data: Optional[Dict[str, Any]] = None):
@@ -61,29 +61,27 @@ class State:
         """Get copy of state data"""
         return deepcopy(self._data)
     
-    def set(self, key: str, value: Any) -> 'State':
+    def set(self, key: str, value: Any) -> None:
         """
-        Set key to value (replaces).
+        Set key to value (replaces). Mutates in place.
         Accepts any Python object - Pydantic models, plain values, dicts, etc.
         """
-        new_data = deepcopy(self._data)
-        new_data[key] = value
-        
-        new_state = State(new_data)
-        new_state._version = self._version + 1
-        return new_state
+        self._data[key] = value
+        self._version += 1
     
-    def update(self, key: str, value: Any) -> 'State':
+    def update(self, key: str, value: Any) -> None:
         """
-        Update key with value.
+        Update key with value. Mutates in place.
         For dicts: merges with existing dict.
         For other types: replaces value.
         """
         current = self.get(key, {})
         if isinstance(current, dict) and isinstance(value, dict):
             merged = {**current, **value}
-            return self.set(key, merged)
-        return self.set(key, value)
+            self._data[key] = merged
+        else:
+            self._data[key] = value
+        self._version += 1
     
     def get(self, key: str, default: Any = None) -> Any:
         """Get value by key"""
@@ -93,28 +91,32 @@ class State:
         """Check if key exists"""
         return key in self._data
     
-    def delete(self, key: str) -> 'State':
-        """Remove key from state"""
-        new_data = {k: v for k, v in self._data.items() if k != key}
-        return State(new_data)
+    def delete(self, key: str) -> None:
+        """Remove key from state. Mutates in place."""
+        if key in self._data:
+            del self._data[key]
+            self._version += 1
     
-    def append(self, key: str, value: Any) -> 'State':
-        """Append to list at key"""
+    def append(self, key: str, value: Any) -> None:
+        """Append to list at key. Mutates in place."""
         current = self.get(key, [])
-        return self.set(key, current + [value])
+        if not isinstance(current, list):
+            raise TypeError(f"Cannot append to non-list value at key '{key}'")
+        current.append(value)
+        self._version += 1
     
-    def increment(self, key: str, amount: float = 1) -> 'State':
-        """Increment numeric value"""
+    def increment(self, key: str, amount: float = 1) -> None:
+        """Increment numeric value. Mutates in place."""
         current = self.get(key, 0)
-        return self.set(key, current + amount)
+        if not isinstance(current, (int, float)):
+            raise TypeError(f"Cannot increment non-numeric value at key '{key}'")
+        self._data[key] = current + amount
+        self._version += 1
     
-    def merge(self, other: 'State') -> 'State':
-        """Merge another state into this one"""
-        new_data = deepcopy(self._data)
-        new_data.update(other._data)
-        new_state = State(new_data)
-        new_state._version = max(self._version, other._version) + 1
-        return new_state
+    def merge(self, other: 'State') -> None:
+        """Merge another state into this one. Mutates in place."""
+        self._data.update(other._data)
+        self._version = max(self._version, other._version) + 1
     
     def subset(self, keys: List[str]) -> 'State':
         """Create new state with only specified keys"""

@@ -21,12 +21,17 @@ class Stage:
     """
     A stage represents a logical grouping of tools and state.
     Analogous to a page in a web application.
+    
+    Each stage has its own local state that is shared by all tools within the stage.
     """
     name: str
     description: str
         
     # Components
     tools: Dict[str, Tool] = field(default_factory=dict)
+    
+    # Stage-local state (shared by all tools in this stage)
+    local_state: State = field(default_factory=State)
     
     # Navigation
     transitions: List[str] = field(default_factory=list)  # Valid next stages
@@ -37,7 +42,7 @@ class Stage:
     parent: Optional['Stage'] = None
     
     def __post_init__(self):
-        """Validate prerequisites are constructs"""
+        """Validate prerequisites are constructs and initialize local state"""
         for prereq in self.prerequisites:
             validate_construct(prereq, f"Stage '{self.name}' prerequisite {prereq.__name__}")
     
