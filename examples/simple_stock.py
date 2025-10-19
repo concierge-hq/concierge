@@ -1,10 +1,11 @@
 """
 Simple stock exchange example - demonstrates Concierge basics.
 Focus is on showing the framework, not real stock logic.
+
 """
 import asyncio
 from pydantic import BaseModel, Field
-from concierge.core import construct, State, tool, stage, Workflow
+from concierge.core import construct, State, tool, stage, workflow
 
 
 # Define constructs
@@ -81,34 +82,35 @@ class PortfolioStage:
         return {"result": "Total profit: +$1,234.56"}
 
 
-# Build workflow
-def build_workflow() -> Workflow:
-    workflow = Workflow("stock_exchange", "Simple stock trading")
+@workflow(name="stock_exchange", description="Simple stock trading")
+class StockWorkflow:
+    """Stock exchange workflow"""
     
-    # Add stages
-    browse = BrowseStage._stage
-    browse.transitions = ["transact", "portfolio"]
+    # Define stages (first = initial)
+    browse = BrowseStage
+    transact = TransactStage
+    portfolio = PortfolioStage
     
-    transact = TransactStage._stage
-    transact.transitions = ["portfolio", "browse"]
-    
-    portfolio = PortfolioStage._stage
-    portfolio.transitions = ["browse"]
-    
-    workflow.add_stage(browse, initial=True)
-    workflow.add_stage(transact)
-    workflow.add_stage(portfolio)
-    
-    return workflow
+    # Define transitions
+    transitions = {
+        browse: [transact, portfolio],     # From browse → transact or portfolio
+        transact: [portfolio, browse],     # From transact → portfolio or back to browse
+        portfolio: [browse]                # From portfolio → back to browse
+    }
 
 
 # Demo
 async def main():
     print("=== Simple Stock Exchange ===\n")
     
-    workflow = build_workflow()
-    session = workflow.create_session()
+    # Get the workflow object (auto-built by @workflow decorator!)
+    workflow = StockWorkflow._workflow
     
+    # Create orchestrator with session ID
+    from concierge.core.engine import Orchestrator
+    session = Orchestrator(workflow, session_id="user-123")
+    
+    print(f"Session ticket: {session.session_id}")
     print(f"Current stage: {session.current_stage}\n")
     
     # 1. Search for stock
@@ -156,12 +158,6 @@ async def main():
     })
     print(f"   {result}\n")
     
-    print("\nSummary:")
-    print("✓ Each stage has its own isolated local state")
-    print("✓ Tools within a stage share that stage's local state")
-    print("✗ Stage transitions create fresh state (data doesn't transfer)")
-    print("→ Later: We'll add global state via Context for cross-stage data sharing")
-
 
 if __name__ == "__main__":
     asyncio.run(main())

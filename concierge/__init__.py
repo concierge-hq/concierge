@@ -9,9 +9,10 @@ from concierge.core import (
     Stage,
     Context,
     Workflow,
-    WorkflowSession,
+    Orchestrator,
     stage,
     tool,
+    workflow,
 )
 
 __version__ = "0.1.0"

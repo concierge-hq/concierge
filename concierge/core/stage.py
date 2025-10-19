@@ -122,9 +122,21 @@ class Stage:
 
 # Decorator
 class stage:
-    """Mark a class as a Stage. Methods with @tool become tools."""
+    """
+    Mark a class as a Stage. Methods with @tool become tools.
     
-    def __init__(self, name: Optional[str] = None, prerequisites: Optional[List[Type]] = None):
+    Args:
+        name: Stage name (defaults to class name)
+        prerequisites: List of Pydantic constructs required to enter this stage
+    
+    Note: Transitions are defined in the @workflow decorator, not here!
+    """
+    
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        prerequisites: Optional[List[Type]] = None
+    ):
         self.name = name
         self.prerequisites = prerequisites or []
     
@@ -132,7 +144,11 @@ class stage:
         stage_name = self.name or cls.__name__.lower()
         stage_desc = inspect.getdoc(cls) or ""
         
-        stage_obj = Stage(name=stage_name, description=stage_desc, prerequisites=self.prerequisites)
+        stage_obj = Stage(
+            name=stage_name,
+            description=stage_desc,
+            prerequisites=self.prerequisites
+        )
         
         instance = cls()
         
