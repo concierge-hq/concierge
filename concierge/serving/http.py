@@ -6,7 +6,7 @@ from http.server import HTTPServer as BaseHTTPServer, BaseHTTPRequestHandler
 import json
 import asyncio
 from urllib.parse import urlparse
-from concierge.server import SessionManager
+from concierge.serving.manager import SessionManager
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -104,7 +104,7 @@ class HTTPServer:
 
 
 if __name__ == "__main__":
-    from concierge import SessionManager
+    from concierge.serving.manager import SessionManager
     from examples.simple_stock import StockWorkflow
     
     wf = StockWorkflow._workflow

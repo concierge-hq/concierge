@@ -14,6 +14,6 @@ from concierge.core import (
     workflow,
 )
 from concierge.engine import Orchestrator
-from concierge.server import SessionManager
+from concierge.serving import SessionManager, HTTPServer
 
 __version__ = "0.1.0"
