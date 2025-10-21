@@ -80,8 +80,18 @@ Current state:
 }
 
 What would you like to do?
-1. Call a tool: {"action": "method_call", "tool": "tool_name", "args": {...}}
-2. Transition: {"action": "stage_transition", "stage": "stage_name"}"""
+
+1. Call a tool
+Format: {"action": "method_call", "tool": "<tool>", "args": "{...}"}
+Example: {"action":"method_call","tool":"search","args":{"symbol":"AAPL"}}
+
+2. Transition to another stage
+Format: {"action": "stage_transition", "stage": "<stage>"}
+Example: {"action":"stage_transition","stage":"portfolio"}
+
+3. End session
+Format: {"action": "terminate_session", "reason": "<reason>"}
+Example: {"action":"terminate_session","reason":"completed"}"""
         
         assert response == expected
         
@@ -127,8 +137,18 @@ Current state:
 }
 
 What would you like to do?
-1. Call a tool: {"action": "method_call", "tool": "tool_name", "args": {...}}
-2. Transition: {"action": "stage_transition", "stage": "stage_name"}"""
+
+1. Call a tool
+Format: {"action": "method_call", "tool": "<tool>", "args": "{...}"}
+Example: {"action":"method_call","tool":"search","args":{"symbol":"AAPL"}}
+
+2. Transition to another stage
+Format: {"action": "stage_transition", "stage": "<stage>"}
+Example: {"action":"stage_transition","stage":"portfolio"}
+
+3. End session
+Format: {"action": "terminate_session", "reason": "<reason>"}
+Example: {"action":"terminate_session","reason":"completed"}"""
         
         assert response == expected
         
@@ -167,8 +187,18 @@ Current state:
 {}
 
 What would you like to do?
-1. Call a tool: {"action": "method_call", "tool": "tool_name", "args": {...}}
-2. Transition: {"action": "stage_transition", "stage": "stage_name"}"""
+
+1. Call a tool
+Format: {"action": "method_call", "tool": "<tool>", "args": "{...}"}
+Example: {"action":"method_call","tool":"search","args":{"symbol":"AAPL"}}
+
+2. Transition to another stage
+Format: {"action": "stage_transition", "stage": "<stage>"}
+Example: {"action":"stage_transition","stage":"portfolio"}
+
+3. End session
+Format: {"action": "terminate_session", "reason": "<reason>"}
+Example: {"action":"terminate_session","reason":"completed"}"""
         
         assert response == expected
         
