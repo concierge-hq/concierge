@@ -110,8 +110,30 @@ class Orchestrator:
         target = self.workflow.transition_to(action.target_stage)
         self.pending_transition = None
         
-        # Update current stage in state_manager
         state_mgr = get_state_manager()
+        propagation_config = self.workflow.get_propagation_config(stage.name, action.target_stage)
+        
+        if propagation_config != "none":
+            source_state_dict = await state_mgr.get_stage_state(self.session_id, stage.name)
+            
+            if propagation_config == "all":
+                state_to_transfer = source_state_dict
+            elif isinstance(propagation_config, list):
+                state_to_transfer = {
+                    key: value for key, value in source_state_dict.items()
+                    if key in propagation_config
+                }
+            else:
+                state_to_transfer = {}
+            
+            if state_to_transfer:
+                await state_mgr.update_stage_state(
+                    self.session_id,
+                    action.target_stage,
+                    state_to_transfer
+                )
+        
+        # Update current stage in state_manager
         await state_mgr.update_current_stage(self.session_id, action.target_stage)
         
         self.history.append({
