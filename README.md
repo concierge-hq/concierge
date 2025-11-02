@@ -1,6 +1,15 @@
-# Concierge 🎩
+<br>
+<p align="center">
+  <img src="assets/logo.svg" alt="Concierge Logo" width="2000"/>
+</p>
+<br>
 
-**A server-centric state machine framework for building intelligent LLM workflows**
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]() [![License: MIT](https://img.shields.io/badge/License-MIT-blue)]() [![Python 3.10+](https://img.shields.io/badge/python-3.10+-lightgrey)]()
+
+# Concierge
+
+**A server-centric state machine framework for building intelligent LLM workflows.**
+<br>
 
 Concierge flips the traditional MCP model: instead of clients managing everything, the **server** handles prompt generation, state management, and flow control. The client becomes a simple messenger.
 
