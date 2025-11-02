@@ -14,17 +14,17 @@
     </linearGradient>
   </defs>
 
-  <!-- Transparent background (no fill rect) -->
+  <!-- Transparent background -->
 
   <!-- ICON -->
   <g shape-rendering="crispEdges">
-    <!-- arm 2: +42° (back arm, single smooth gradient rectangle) -->
-    <g transform="rotate(42 420 210)">
+    <!-- arm 2: +43° (back arm, visible gradient) -->
+    <g transform="rotate(43 420 210)">
       <rect x="-100" y="165" width="1100" height="90" rx="14" fill="url(#bbGradB)"/>
     </g>
 
-    <!-- arm 1: -42° (front arm, single smooth black rectangle) -->
-    <g transform="rotate(-42 420 210)">
+    <!-- arm 1: -43° (front arm, flat black) -->
+    <g transform="rotate(-43 420 210)">
       <rect x="-100" y="165" width="1100" height="90" rx="14" fill="url(#bbGradA)"/>
     </g>
   </g>
