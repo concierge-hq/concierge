@@ -11,7 +11,7 @@
 **Expose your service to Agents**
 <br>
 
-Concierge is a framework that allows LLMs to interact with your applications, and navigate through complex services. Concierge provides a rich context to guide agents towards domain specific goals. (Example: Agents browsing, selecting, transcating for online shopping interface).
+Concierge is a framework that allows LLMs to interact with your applications, and navigate through complex service heirarchies. Concierge provides a rich context to guide agents towards domain specific goals. (Example: Agents browsing, selecting, transcating for online shopping interface).
 
 ## Core Concepts
 
