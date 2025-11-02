@@ -1,0 +1,19 @@
+<svg width="2200" height="420" viewBox="0 0 2200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="concGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#222"/>
+      <stop offset="1" stop-color="#000"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Interlocking circles -->
+  <circle cx="350" cy="210" r="120" stroke="url(#concGrad)" stroke-width="40" fill="none"/>
+  <circle cx="520" cy="210" r="120" stroke="url(#concGrad)" stroke-width="40" fill="none" opacity="0.85"/>
+  <circle cx="690" cy="210" r="120" stroke="url(#concGrad)" stroke-width="40" fill="none" opacity="0.85"/>
+
+  <text x="950" y="270" font-family="Inter, Montserrat, Avenir Next, Helvetica Neue, Arial, sans-serif"
+        font-size="160" font-weight="700" letter-spacing="8" fill="#111">
+    CONCEIRGE
+  </text>
+</svg>
+
