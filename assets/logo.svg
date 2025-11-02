@@ -14,26 +14,18 @@
     </linearGradient>
   </defs>
 
-  <!-- Transparent background (no <rect> fill) -->
+  <!-- Transparent background (no fill rect) -->
 
   <!-- ICON -->
-  <g shape-rendering="geometricPrecision">
-    <!-- arm 2: +42° (back arm, gradient, extended) -->
+  <g shape-rendering="crispEdges">
+    <!-- arm 2: +42° (back arm, single smooth gradient rectangle) -->
     <g transform="rotate(42 420 210)">
-      <rect x="0" y="165" width="690" height="90" rx="14" fill="url(#bbGradB)"/>
-      <rect x="70" y="165" width="690" height="90" rx="14" fill="url(#bbGradB)"/>
-      <rect x="140" y="165" width="690" height="90" rx="14" fill="url(#bbGradB)"/>
-      <rect x="210" y="165" width="690" height="90" rx="14" fill="url(#bbGradB)"/>
-      <rect x="280" y="165" width="690" height="90" rx="14" fill="url(#bbGradB)"/>
+      <rect x="-100" y="165" width="1100" height="90" rx="14" fill="url(#bbGradB)"/>
     </g>
 
-    <!-- arm 1: -42° (front arm, flat black, extended) -->
+    <!-- arm 1: -42° (front arm, single smooth black rectangle) -->
     <g transform="rotate(-42 420 210)">
-      <rect x="0" y="165" width="690" height="90" rx="14" fill="url(#bbGradA)"/>
-      <rect x="70" y="165" width="690" height="90" rx="14" fill="url(#bbGradA)"/>
-      <rect x="140" y="165" width="690" height="90" rx="14" fill="url(#bbGradA)"/>
-      <rect x="210" y="165" width="690" height="90" rx="14" fill="url(#bbGradA)"/>
-      <rect x="280" y="165" width="690" height="90" rx="14" fill="url(#bbGradA)"/>
+      <rect x="-100" y="165" width="1100" height="90" rx="14" fill="url(#bbGradA)"/>
     </g>
   </g>
 
