@@ -17,7 +17,13 @@ Concierge is a declerative framework that allows LLMs to interact with your appl
 
 Developers define workflows with explicit rules and prerequisites. You control agent autonomy by specifying legal tasks at each stage and valid transitions between stages. For example: agents cannot checkout before adding items to cart. Concierge enforces these rules, validates prerequisites before task execution, and ensures agents follow your defined path through the application.
 
-### 🔤 **Tasks**
+<br>
+<p align="center">
+  <img src="assets/concierge_example.svg" alt="Concierge Example" width="100%"/>
+</p>
+<br>
+
+### **Tasks**
 Tasks are the smallest granularity of callable business logic. Several tasks can be defined within 1 stage. Ensuring these tasks are avialable or callable at the stage. 
 ```python
 @task(description="Add product to shopping cart")
@@ -29,7 +35,7 @@ def add_to_cart(self, state: State, product_id: str, quantity: int) -> dict:
     return {"success": True, "cart_size": len(cart_items)}
 ```
 
-### 🏗️ **Stages**
+### **Stages**
 A stage is a logical sub-step towards a goal, Stage can have several tasks grouped together, that an agent can call at a given point. 
 ```python
 @stage(name="product")
@@ -59,12 +65,6 @@ state.set("cart.total", 99.99)
 items = state.get("cart.items", [])
 user_email = state.get("user.email")
 ```
-
-<br>
-<p align="center">
-  <img src="assets/concierge_example.svg" alt="Concierge Example" width="100%"/>
-</p>
-<br>
 
 ### 🔧 **Workflow**
 A workflow is a logic grouping of several stages, you can define graphs of stages which represent legal moves to other stages within workflow.
