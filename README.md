@@ -19,7 +19,10 @@ Developers define workflows with explicit rules and prerequisites. You control a
 
 <br>
 <p align="center">
-  <img src="assets/concierge_example.svg" alt="Concierge Example" width="100%"/>
+  <img src="assets/Concierge WF.png" alt="Concierge Workflow" width="100%"/>
+  <br/>
+  <img src="assets/Concierge Stats.png" alt="Concierge Stats" width="100%"/>
+  
 </p>
 <br>
 
@@ -174,6 +177,12 @@ class CheckoutStage:
 - **Food Delivery**: Restaurant ordering with menu selection and delivery tracking
 - **Travel Booking**: Flights and hotels with multi-stage search and booking
 - **Payment**: Payment workflows with verification and compliance checks
+
+<br>
+<p align="center">
+  <img src="assets/concierge_example.svg" alt="Concierge Example" width="100%"/>
+</p>
+<br>
 
 ---
 
