@@ -2,7 +2,7 @@
 import yaml
 from pathlib import Path
 
-_config_path = Path(__file__).parent.parent / "configs" / "default.yaml"
+_config_path = Path(__file__).parent.parent.parent / "configs" / "default.yaml"
 _config = yaml.safe_load(_config_path.read_text())
 
 SERVER_HOST = _config["server"]["host"]

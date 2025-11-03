@@ -27,7 +27,7 @@ class LanguageEngine:
     Creates and manages its own orchestrator instance.
     """
     
-    def __init__(self, workflow: Workflow, session_id: str, output_format: str = "text"):
+    def __init__(self, workflow: Workflow, session_id: str, output_format: str = "json"):
         """
         Initialize language engine.
         

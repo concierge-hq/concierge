@@ -2,6 +2,7 @@
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from concierge.core.registry import get_registry
@@ -215,7 +216,7 @@ async def get_statistics() -> Dict[str, Any]:
 
 
 @app.post("/execute")
-async def execute_workflow(http_request: Request, response: Response) -> str:
+async def execute_workflow(http_request: Request):
     """Execute workflow action (for LLM clients)"""
     context = get_context()
     
@@ -240,10 +241,14 @@ async def execute_workflow(http_request: Request, response: Response) -> str:
     if not session_id:
         session_id = session_manager.create_session()
     
-    response.headers["X-Session-Id"] = session_id
-    
     result = await session_manager.handle_request(session_id, body)
-    return result
+    
+    # Return pre-serialized JSON string without double-encoding
+    return Response(
+        content=result,
+        media_type="application/json",
+        headers={"X-Session-Id": session_id}
+    )
 
 
 @app.get("/health")

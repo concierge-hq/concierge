@@ -157,7 +157,6 @@ class ComprehensivePresentation(Presentation):
         for target_stage in stage.transitions:
             transition_lines.append(f"  Transition to: {target_stage}")
             
-            # Generate example using StageTransition contract
             transition_call = StageTransition(
                 action=ACTION_STAGE_TRANSITION,
                 stage=target_stage
