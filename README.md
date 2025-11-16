@@ -15,9 +15,9 @@ Concierge is a declerative framework that allows LLMs to interact with your appl
 
 <h2 id="updates">🚀 Updates</h2>
 
- - **Nov 16, 2024**: Concierge x <a href="https://www.useblock.tech/">Block</a> unite. Concierge now powers conversational booking agents for beauty and wellness appointments across platforms.
- - **Nov 10, 2024**: Concierge x <a href="https://topfunnel.io/">Funnel</a> unite. Concierge powers your AI Staff Member That Never Sleeps.
- - **Nov 5, 2024**: Concierge x <a href="https://usearistotle.com/">Aristotle</a>. Concierge now powers Aristotle's conversational AI for reliable, high-stakes production deployments.
+ - **Nov 16, 2025**: Concierge x <a href="https://www.useblock.tech/">Block</a> unite. Concierge now powers conversational booking agents for beauty and wellness appointments across platforms.
+ - **Nov 10, 2025**: Concierge x <a href="https://topfunnel.io/">Funnel</a> unite. Concierge powers your AI Staff Member That Never Sleeps.
+ - **Nov 5, 2025**: Concierge x <a href="https://usearistotle.com/">Aristotle</a>. Concierge now powers Aristotle's conversational AI for reliable, high-stakes production deployments.
 
 ## Quick Start
 
