@@ -1,5 +1,7 @@
 import sys
 import json
+import time
+import threading
 import requests
 from openai import OpenAI
 from enum import Enum
@@ -15,9 +17,40 @@ class Mode(Enum):
     SERVER = "server"
 
 
+class Spinner:
+    def __init__(self, message: str = "Processing"):
+        self.message = message
+        self._stop = threading.Event()
+        self._thread = None
+
+    def __enter__(self):
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self._stop.set()
+        if self._thread:
+            self._thread.join()
+        sys.stdout.write("\r" + " " * (len(self.message) + 6) + "\r")
+        sys.stdout.flush()
+
+    def _spin(self):
+        frames = ["|", "/", "-", "\\"]
+        idx = 0
+        while not self._stop.is_set():
+            frame = frames[idx % len(frames)]
+            sys.stdout.write(f"\r  {frame} {self.message}")
+            sys.stdout.flush()
+            time.sleep(0.1)
+            idx += 1
+
+
+
 class ToolCallingClient:
     
-    def __init__(self, api_base: str, api_key: str):
+    def __init__(self, api_base: str, api_key: str, verbose: bool = False):
         self.llm = OpenAI(base_url=api_base, api_key=api_key)
         self.model = "gpt-5"  
         self.concierge_url = f"http://{SERVER_HOST}:{SERVER_PORT}"
@@ -28,6 +61,7 @@ class ToolCallingClient:
         self.workflow_sessions = {} 
         self.current_workflow = None
         self.current_tools = []
+        self.verbose = verbose
         
         self.conversation_history = [{
             "role": "system",
@@ -51,20 +85,57 @@ Always provide a seamless, conversational experience and explain what you're doi
         }]
     
     
+    def _log(self, message: str, style: str = "info"):
+        """Pretty print log messages"""
+        if not self.verbose:
+            return
+        
+        colors = {
+            "info": "\033[36m",      # Cyan
+            "success": "\033[32m",   # Green
+            "warning": "\033[33m",   # Yellow
+            "error": "\033[31m",     # Red
+            "reset": "\033[0m"
+        }
+        color = colors.get(style, colors["info"])
+        print(f"{color}{message}{colors['reset']}")
+    
+    def _status(self, message: str, icon: str = "→"):
+        """Print status message with elegant styling"""
+        print(f"  \033[38;5;110m{icon}\033[0m  \033[38;5;252m{message}\033[0m")
+    
+    def _success(self, message: str, detail: str = ""):
+        """Print success message with checkmark"""
+        print(f"  \033[38;5;82m✓\033[0m  \033[1;38;5;189m{message}\033[0m")
+        if detail:
+            print(f"     \033[38;5;245m{detail}\033[0m")
+    
+    def _action(self, heading: str, detail: str | None = None):
+        """Print action being performed"""
+        line = f"  \033[38;5;183m▪\033[0m  \033[38;5;252m{heading}\033[0m"
+        if detail:
+            line += f": \033[38;5;110m{detail}\033[0m"
+        print(line)
+
+    
     def search_remote_servers(self, search_query: str) -> list:
         """Search for available remote servers/workflows - ALWAYS OVERWRITES in-context servers"""
         try:
-            print(f"\n[SEARCH] Query: '{search_query}'")
+            self._status(f"Discovering workflows")
             response = requests.get(f"{self.concierge_url}/api/workflows", params={"search": search_query})
             response.raise_for_status()
             workflows = response.json().get('workflows', [])
             
             self.in_context_servers = workflows
-            print(f"[IN-CONTEXT] Updated with {len(workflows)} servers")
+            self._log(f"[SEARCH] Query: '{search_query}'", "info")
+            self._log(f"[IN-CONTEXT] Found {len(workflows)} servers", "success")
+            
+            if workflows:
+                self._success(f"Found {len(workflows)} workflow{'s' if len(workflows) != 1 else ''}")
             
             return workflows
         except Exception as e:
-            print(f"[ERROR] Search failed: {e}")
+            self._log(f"[ERROR] Search failed: {e}", "error")
             self.in_context_servers = []
             return []
     
@@ -75,7 +146,7 @@ Always provide a seamless, conversational experience and explain what you're doi
             if not server:
                 return {"error": f"Server '{server_name}' not found in current context. Search first."}
             
-            print(f"\n[CONNECTING] Server: {server_name}")
+            self._status(f"Connecting to {server_name}")
             
             server_url = server.get("url", f"{self.concierge_url}")
             headers = {}
@@ -100,9 +171,14 @@ Always provide a seamless, conversational experience and explain what you're doi
             
             self.mode = Mode.SERVER
             
-            print(f"[CONNECTED] Session: {self.workflow_sessions.get(server_name, 'N/A')[:8]}...")
-            print(f"[MODE] Switched to SERVER mode")
-            print(f"[TOOLS] {len(self.current_tools)} tools available")
+            self._log(f"[CONNECTED] Session: {self.workflow_sessions.get(server_name, 'N/A')[:8]}...", "success")
+            self._log(f"[MODE] Switched to SERVER mode", "info")
+            self._log(f"[TOOLS] {len(self.current_tools)} tools available", "info")
+            
+            # Beautiful success message
+            session_id = self.workflow_sessions.get(server_name, 'N/A')
+            current_stage = result.get('current_stage', 'unknown')
+            self._success(f"Connected to {server_name}", f"session: {session_id[:8]}... • stage: {current_stage}")
             
             return {
                 "status": "connected",
@@ -113,7 +189,7 @@ Always provide a seamless, conversational experience and explain what you're doi
             }
             
         except Exception as e:
-            print(f"[ERROR] Connection failed: {e}")
+            self._log(f"[ERROR] Connection failed: {e}", "error")
             return {"error": str(e)}
     
     def get_user_mode_tools(self) -> list:
@@ -188,7 +264,7 @@ After connecting, you'll have access to the server's tools to help the user acco
         headers = {"X-Session-Id": self.workflow_sessions[workflow_name]}
         payload["workflow_name"] = workflow_name
         
-        print(f"\n[{workflow_name.upper()}] Action: {payload.get('action')}")
+        self._log(f"[{workflow_name.upper()}] Action: {payload.get('action')}", "info")
         
         response = requests.post(f"{self.concierge_url}/execute", json=payload, headers=headers)
         response.raise_for_status()
@@ -226,8 +302,9 @@ After connecting, you'll have access to the server's tools to help the user acco
             self.in_context_servers = []
             self.mode = Mode.USER
             
-            print(f"\n[DISCONNECTED] Server: {workflow_name}")
-            print(f"[MODE] Switched to USER mode")
+            self._log(f"[DISCONNECTED] Server: {workflow_name}", "info")
+            self._log(f"[MODE] Switched to USER mode", "info")
+            print(f"  \033[38;5;147m◇\033[0m  \033[38;5;245mDisconnected from\033[0m \033[38;5;183m{workflow_name}\033[0m")
             
             return {"status": "disconnected", "server": workflow_name}
             
@@ -314,14 +391,17 @@ Use this when:
             else:
                 tools = self.get_server_mode_tools()
             
-            print(f"\n[ITERATION {iteration + 1}] Mode: {self.mode.value.upper()}, Tools: {len(tools)}")
+            self._log(f"[ITERATION {iteration + 1}] Mode: {self.mode.value.upper()}, Tools: {len(tools)}", "info")
             
-            response = self.llm.chat.completions.create(
-                model=self.model,
-                messages=self.conversation_history,
-                tools=tools,
-                tool_choice="auto"
-            )
+            spinner_message = "Executing workflow plan" if self.mode == Mode.SERVER else "Evaluating request"
+            with Spinner(spinner_message):
+                response = self.llm.chat.completions.create(
+                    model=self.model,
+                    messages=self.conversation_history,
+                    tools=tools,
+                    tool_choice="auto"
+                )
+
             
             message = response.choices[0].message
             
@@ -341,14 +421,44 @@ Use this when:
             self.conversation_history.append(assistant_message)
             
             if not message.tool_calls:
-                print(f"\n[ASSISTANT] {message.content}")
+                print(f"  \033[38;5;147m◈\033[0m  \033[1;38;5;252m{message.content}\033[0m")
                 return message.content
-            
+
             for tool_call in message.tool_calls:
                 function_name = tool_call.function.name
                 arguments = json.loads(tool_call.function.arguments)
                 
-                print(f"\n[TOOL CALL] {function_name}({json.dumps(arguments, indent=2)})")
+                if function_name == "transition_stage":
+                    self._action("Stage transition", arguments.get('target_stage'))
+                elif function_name == "get_all_products":
+                    self._action("Catalog", "list all products")
+                elif function_name == "get_categories":
+                    self._action("Catalog", "list categories")
+                elif function_name == "get_product":
+                    product_id = arguments.get('product_id')
+                    detail = f"product {product_id}" if product_id else "product details"
+                    self._action("Catalog", detail)
+                elif function_name == "get_products_in_category":
+                    category = arguments.get('category')
+                    detail = f"category {category}" if category else "category listings"
+                    self._action("Catalog", detail)
+                elif function_name == "create_cart":
+                    self._action("Cart", "create")
+                elif function_name == "add_to_cart":
+                    item = arguments.get('product_id')
+                    detail = f"add product {item}" if item else "add item"
+                    self._action("Cart", detail)
+                elif function_name == "view_cart":
+                    self._action("Cart", "view")
+                elif function_name == "get_user_carts":
+                    self._action("Cart", "retrieve user carts")
+                elif function_name == "complete_order":
+                    self._action("Checkout", "submit order")
+                else:
+                    readable = function_name.replace('_', ' ').capitalize()
+                    self._action(readable)
+
+                self._log(f"[TOOL CALL] {function_name}({json.dumps(arguments, indent=2)})", "info")
                 
                 if self.mode == Mode.USER:
                     if function_name == "search_remote_servers":
@@ -378,6 +488,9 @@ Use this when:
                             action = self.openai_to_concierge_action(tool_call)
                             result = self.call_workflow(self.current_workflow, action)
                             result_content = result.get("content", json.dumps(result))
+                            
+                            if "current_stage" in result:
+                                print(f"\033[90m  Current stage: {result['current_stage']}\033[0m")
                 
                 self.conversation_history.append({
                     "role": "tool",
@@ -389,26 +502,53 @@ Use this when:
     
     def run(self):
         """Interactive chat loop"""
-        print("=" * 60)
-        print(f"Concierge Tool Calling Client")
-        print(f"Model: {self.model}")
-        print(f"Mode: {self.mode.value.upper()}")
-        print("=" * 60)
-        print("Type 'exit' to quit\n")
+        # Clean, powerful banner
+        print()
+        print("\033[38;5;147m╭────────────────────────────────────────────────────────╮\033[0m")
+        print("\033[38;5;147m│\033[0m                                                        \033[38;5;147m│\033[0m")
+        print("\033[38;5;147m│\033[0m                    \033[1;38;5;189mC O N C I E R G E\033[0m                   \033[38;5;147m│\033[0m")
+        print("\033[38;5;147m│\033[0m                                                        \033[38;5;147m│\033[0m")
+        print("\033[38;5;147m│\033[0m                \033[38;5;110mAgentic Web Interfaces\033[0m                  \033[38;5;147m│\033[0m")
+        print("\033[38;5;147m│\033[0m                                                        \033[38;5;147m│\033[0m")
+        print("\033[38;5;147m╰────────────────────────────────────────────────────────╯\033[0m")
+        print()
+        
+        # Status line
+        status_parts = []
+        status_parts.append(f"\033[38;5;183m{self.model}\033[0m")
+        status_parts.append(f"\033[38;5;147m{self.mode.value.upper()}\033[0m")
+        if self.verbose:
+            status_parts.append("\033[38;5;110mVERBOSE\033[0m")
+        
+        separator = " \033[38;5;238m•\033[38;5;245m "
+        print(f"\033[38;5;245m  {separator.join(status_parts)}\033[0m")
+        print(f"\033[38;5;245m  Type \033[3;38;5;183mexit\033[0m \033[38;5;245mto quit\033[0m")
+        print()
         
         while True:
             try:
-                user_input = input("You: ").strip()
+                user_input = input("  \033[1;38;5;189m›\033[0m \033[1mYou:\033[0m ").strip()
                 if not user_input:
                     continue
                 if user_input.lower() == "exit":
+                    print()
+                    print("\033[38;5;147m╭────────────────────────────────────────────────────────╮\033[0m")
+                    print("\033[38;5;147m│\033[0m            \033[38;5;183mThank you for using Concierge\033[0m               \033[38;5;147m│\033[0m")
+                    print("\033[38;5;147m╰────────────────────────────────────────────────────────╯\033[0m")
+                    print()
                     break
                 
-                response = self.chat(user_input)
-                print(f"\nAssistant: {response}\n")
+                print()  # Add spacing before response
+                self.chat(user_input)
+                print()  # Add spacing after response
                 
             except KeyboardInterrupt:
-                print("\nExiting...")
+                print()
+                print()
+                print("\033[38;5;147m╭────────────────────────────────────────────────────────╮\033[0m")
+                print("\033[38;5;147m│\033[0m            \033[38;5;183mThank you for using Concierge\033[0m               \033[38;5;147m│\033[0m")
+                print("\033[38;5;147m╰────────────────────────────────────────────────────────╯\033[0m")
+                print()
                 break
             except Exception as e:
                 print(f"\nError: {e}\n")

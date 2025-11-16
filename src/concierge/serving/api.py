@@ -285,8 +285,14 @@ async def execute_workflow(http_request: Request):
     
     try:
         result = await session_manager.handle_request(session_id, body)
-    except Exception:
-        print(f"[EXECUTE] Error processing action '{action}' for workflow '{workflow_name}' (session={session_id})")
+    except Exception as e:
+        import traceback
+        print("\n" + "="*80)
+        print(f"[EXECUTE ERROR] Workflow: {workflow_name} | Action: {action} | Session: {session_id}")
+        print(f"[EXECUTE ERROR] Exception: {type(e).__name__}: {e}")
+        print("-"*80)
+        traceback.print_exc()
+        print("="*80 + "\n")
         raise
     
     return Response(

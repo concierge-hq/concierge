@@ -25,7 +25,8 @@ def serve(config):
 @click.option('--config', default='concierge.yaml', help='Config file path')
 @click.option('--api-base', required=True, help='OpenAI API base URL')
 @click.option('--api-key', required=True, help='OpenAI API key')
-def chat(config, api_base, api_key):
+@click.option('--verbose', is_flag=True, help='Show detailed logs')
+def chat(config, api_base, api_key, verbose):
     """Start interactive chat with Concierge server"""
     config_path = Path(config)
     if not config_path.exists():
@@ -40,7 +41,7 @@ def chat(config, api_base, api_key):
     click.echo(f"Model: gpt-5 via {api_base}")
     click.echo("Type 'exit' to quit\n")
     
-    client = ToolCallingClient(api_base, api_key)
+    client = ToolCallingClient(api_base, api_key, verbose=verbose)
     client.concierge_url = f"http://{host}:{port}"
     client.run()
 
