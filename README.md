@@ -32,6 +32,13 @@ concierge serve --config your_workflow.yaml
 concierge chat --config your_workflow.yaml --api-base https://api.openai.com/v1 --api-key $OPENAI_API_KEY
 ```
 
+## 🌐 Protocols Supported
+
+| Protocol | Status | Description |
+|-----------|---------|-------------|
+| **AWIP (Agentic Web Interactive Protocol)** | ✅ Supported | Concierge natively implements the Agentic Web Interactive Protocol (AWIP) for connecting agents to web-exposed services. Tools are maintained **server-side**, preventing model context bloat and significantly reducing cost and latency. |
+| **MCP (Model Context Protocol)** | 🚧 Coming Soon | Now express Concierge workflows through MCP, support comming soon. |
+
 ## Core Concepts
 
 Developers define workflows with explicit rules and prerequisites. You control agent autonomy by specifying legal tasks at each stage and valid transitions between stages. For example: agents cannot checkout before adding items to cart. Concierge enforces these rules, validates prerequisites before task execution, and ensures agents follow your defined path through the application.
