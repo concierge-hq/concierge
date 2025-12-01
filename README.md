@@ -16,7 +16,7 @@
     <img src="https://img.shields.io/badge/Book_Demo-Calendly-00A2FF?style=flat&logo=calendly&logoColor=white&labelColor=000000" alt="Book Demo"/>
   </a>
   &nbsp;
-  <a href="https://calendar.google.com/calendar/u/0?cid=MWRiNjA2YjEzODU5MjM4MGE0ZWU1ODJkZTc1ZDhhOTJkNDdhNTg5ODUzNDU5OWM1MWM0YkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t" target="_blank">
+  <a href="https://calendar.google.com/calendar/u/0?cid=MWRiNjA2YjEzODU5MjM4MGE0ZWU1ODJkZTc1ZDhhOGUxMmZiNWYzM2FkNTYwMDdhNTg5ODUzNDU5OWM1MWM0YkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t" target="_blank">
     <img src="https://img.shields.io/badge/Community_Sync-Calendar-34A853?style=flat&logo=googlecalendar&logoColor=white&labelColor=000000" alt="Community Sync"/>
   </a>
 </p>
