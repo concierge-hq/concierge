@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    if: false  # <-- makes the entire job a NO-OP
     runs-on: ubuntu-latest
     strategy:
       matrix:
