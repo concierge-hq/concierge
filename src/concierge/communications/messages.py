@@ -2,14 +2,16 @@
 
 Format and examples extracted from external/contracts.py
 """
+
 import json
+
 from concierge.external.contracts import (
-    TaskCall,
-    StageTransition,
-    TerminateSession,
-    TASK_CALL_EXAMPLE,
     STAGE_TRANSITION_EXAMPLE,
-    TERMINATE_SESSION_EXAMPLE
+    TASK_CALL_EXAMPLE,
+    TERMINATE_SESSION_EXAMPLE,
+    StageTransition,
+    TaskCall,
+    TerminateSession,
 )
 
 
@@ -17,7 +19,7 @@ def _format_schema_simple(model_cls) -> str:
     """Generate simple format string from Pydantic schema"""
     schema = model_cls.model_json_schema()
     format_dict = {}
-    
+
     for field_name, field_info in schema.get("properties", {}).items():
         if "const" in field_info:
             format_dict[field_name] = field_info["const"]
@@ -29,7 +31,7 @@ def _format_schema_simple(model_cls) -> str:
                 format_dict[field_name] = f"<{field_name}>"
             else:
                 format_dict[field_name] = f"<{field_name}>"
-    
+
     return json.dumps(format_dict)
 
 
@@ -88,4 +90,3 @@ What would you like to do?
 3. End session
    Format: {terminate_session_format}
    Example: {terminate_session_example}"""
-

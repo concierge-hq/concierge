@@ -1,6 +1,8 @@
 """Centralized configuration for Concierge"""
-import yaml
+
 from pathlib import Path
+
+import yaml
 
 _config_path = Path(__file__).parent.parent.parent / "configs" / "default.yaml"
 _config = yaml.safe_load(_config_path.read_text())
@@ -15,4 +17,3 @@ DB_USER = _config["database"]["user"]
 DB_PASSWORD = _config["database"]["password"]
 
 SERVICES = _config["services"]
-
