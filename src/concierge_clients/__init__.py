@@ -1,1 +1,0 @@
-"""Concierge clients package"""

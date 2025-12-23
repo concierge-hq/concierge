@@ -114,7 +114,7 @@ dmypy.json
 .pyre/
 
 # IDE
-# .vscode/
+.vscode/
 .idea/
 *.swp
 *.swo
@@ -167,4 +167,5 @@ ui/.vite/
 coverage/
 *.lcov
 .nyc_output
+
 

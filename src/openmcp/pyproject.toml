@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-core"
+version = "0.2.0"
+description = "Deploy MCP servers in seconds"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.0.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+search = [
+    "sentence-transformers>=2.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.scripts]
+openmcp = "openmcp_cli:main"
+
+[tool.setuptools]
+packages = ["openmcp", "openmcp.backends", "openmcp.core", "openmcp_cli"]
+package-dir = {"openmcp" = ".", "openmcp_cli" = "./openmcp_cli"}
+

@@ -1,3 +1,4 @@
+# Concierge V0.2 Dependencies
 pydantic>=2.0.0
 pytest>=7.0.0
 pytest-asyncio>=0.21.0
@@ -7,6 +8,11 @@ pyyaml>=6.0.0
 # API Server
 fastapi>=0.109.0
 uvicorn>=0.27.0
+httpx>=0.25.0
+pyjwt>=2.8.0
 
 # Optional: PostgreSQL state manager
 asyncpg>=0.29.0
+# MCP Protocol
+mcp>=1.0.0
+
