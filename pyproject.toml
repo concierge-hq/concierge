@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "concierge_awi"
-version = "0.1.2"
+version = "0.2.0"
 description = "Declarative framework for building Agentic AI Services"
 readme = "README.md"
 license = {file = "LICENSE"}
