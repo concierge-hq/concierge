@@ -1,0 +1,28 @@
+==========================================
+Starting Concierge Worker
+==========================================
+Config:       configs/default.yaml
+Host:         0.0.0.0
+Port:         8083
+State:        postgres
+Database:     concierge @ localhost:5432
+==========================================
+
+[CONFIG] Loading from: /Users/arnavb/others/concierge/configs/default.yaml
+[CONFIG] Project root: /Users/arnavb/others/concierge
+[STATE] PostgreSQL
+[WORKFLOW] Registered: stock_exchange
+[ROUTER DB] Registered stock_exchange -> 127.0.0.1:8083
+[ROUTER DB] Successfully registered 1 workflows
+============================================================
+Concierge Server
+Workflows: stock_exchange
+Server: http://0.0.0.0:8083
+UI APIs: /api/workflows, /api/stats
+LLM API: POST /execute
+============================================================
+INFO:     Started server process [88998]
+INFO:     Waiting for application startup.
+[STARTUP] State manager initialized
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8083 (Press CTRL+C to quit)

@@ -1,18 +1,12 @@
 import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "workers"))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from examples.simple_stock import StockWorkflow
-
-from concierge.core.registry import register_workflow
-from concierge.server import start_server
-from examples.zillow.workflow import ZillowWorkflow
+from concierge.server import start_server_from_config
 
 # Example code, not invoked through concierge serve.
 if __name__ == "__main__":
-    register_workflow(StockWorkflow)
-    register_workflow(ZillowWorkflow)
+    config_file = Path(__file__).parent.parent / "configs" / "default.yaml"
+    start_server_from_config(str(config_file))
 
-    start_server()

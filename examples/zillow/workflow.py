@@ -1,10 +1,9 @@
 """Zillow workflow - composes stages into workflow graph."""
-
-from concierge.core import StateTransfer, workflow
+from concierge.core import workflow, StateTransfer
 from examples.zillow.stages import (
+    Intelligence,
     Analytics,
     Inspection,
-    Intelligence,
     Negotiation,
     Portfolio,
 )
@@ -15,13 +14,13 @@ class ZillowWorkflow:
     """
     Real estate investment workflow implementing Concierge for agentic transcations
     """
-
+    
     intelligence = Intelligence
     analytics = Analytics
     inspection = Inspection
     negotiation = Negotiation
     portfolio = Portfolio
-
+    
     transitions = {
         intelligence: [analytics, inspection, portfolio],
         analytics: [intelligence, inspection, negotiation],
@@ -29,7 +28,7 @@ class ZillowWorkflow:
         negotiation: [intelligence, portfolio],
         portfolio: [intelligence, analytics],
     }
-
+    
     state_management = [
         (intelligence, analytics, StateTransfer.ALL),
         (analytics, inspection, StateTransfer.ALL),

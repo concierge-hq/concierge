@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "concierge_awi"
-version = "0.1.1"
+version = "0.1.2"
 description = "Declarative framework for building Agentic AI Services"
 readme = "README.md"
 license = {file = "LICENSE"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
@@ -17,6 +17,11 @@ dependencies = [
     "requests>=2.31.0",
     "click>=8.0.0",
     "openai>=1.0.0",
+    "httpx>=0.25.0",
+    "pyjwt>=2.8.0",
+    "mcp>=1.0.0",
+    "sentence-transformers>=2.0.0",
+    "numpy>=1.24.0",
 ]
 
 [project.scripts]
@@ -28,29 +33,11 @@ Repository = "https://github.com/Agentic-Web-Interfaces/concierge"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["concierge", "concierge.core", "concierge.serving", "concierge.configs", "concierge_clients"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["concierge*", "services*", "openmcp*"]
 
 [tool.setuptools.package-data]
-"concierge.configs" = ["*.yaml"]
-"concierge" = ["../../web/dist/**/*"]
+"concierge" = ["../web/dist/**/*"]
 
-[tool.ruff]
-line-length = 120
-target-version = "py39"
-
-[tool.ruff.lint]
-select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-]
-ignore = [
-    "E501", # line too long (handled by formatter)
-]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"

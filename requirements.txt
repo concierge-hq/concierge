@@ -7,6 +7,11 @@ pyyaml>=6.0.0
 # API Server
 fastapi>=0.109.0
 uvicorn>=0.27.0
+httpx>=0.25.0
+pyjwt>=2.8.0
 
 # Optional: PostgreSQL state manager
 asyncpg>=0.29.0
+# MCP Protocol
+mcp>=1.0.0
+
