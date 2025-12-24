@@ -44,25 +44,95 @@ Concierge is a declarative framework that allows LLMs to interact with your appl
 
 Concierge token efficiency across increasing difficulty levels on e-commerce/vendor bench.
 
-<h2 id="updates"> Updates</h2>
-
- - **Nov, 2025**:
-   - Concierge x <a href="https://www.useblock.tech/">Block</a> unite. Concierge now powers conversational booking agents for beauty and wellness appointments across platforms.
-   - Concierge x <a href="https://topfunnel.io/">Funnel</a> unite. Concierge powers your AI Staff Member That Never Sleeps.
-   - Concierge x <a href="https://usearistotle.com/">Aristotle</a>. Concierge now powers Aristotle's conversational AI for reliable, high-stakes production deployments.
-
 ## Quick Start
 
+### 1. ChatGPT Applications
+
 ```bash
-# 1. Install Concierge
-pip install concierge_awi
+# Install MCP Core
+pip install mcp-core
 
-# 2. Start the AWI
-concierge serve --config your_workflow.yaml
+# Initialize with ChatGPT Apps support
+openmcp init --chatgpt
 
-# 3. Chat with your service!
-concierge chat --config your_workflow.yaml --api-base https://api.openai.com/v1 --api-key $OPENAI_API_KEY
+# Deploy your service
+openmcp deploy
 ```
+
+<details>
+<summary>📝 Build Instant ChatGPT Apps</summary>
+
+```python
+from openmcp import OpenMCP
+
+mcp = OpenMCP("my-app", stateless_http=True)
+
+@mcp.widget(uri="widget://chart", html="<div>Chart Widget</div>")
+def show_chart(data: str):
+    """Display a chart widget."""
+    return {"data": data}
+```
+</details>
+
+### 2. MCP
+
+```bash
+# Install MCP Core
+pip install mcp-core
+
+# Initialize your MCP project
+openmcp init
+
+# Deploy your service
+openmcp deploy
+```
+
+<details>
+<summary>📝 Example: Wrap FastMCP</summary>
+
+```python
+from mcp.server.fastmcp import FastMCP
+from openmcp import OpenMCP
+
+# Replace FastMCP with OpenMCP
+mcp = OpenMCP(FastMCP("my-server"))  # Drop-in replacement
+
+@mcp.tool()
+def get_user(user_id: int):
+    """Get user by ID."""
+    return {"id": user_id, "name": "John"}
+```
+</details>
+
+### 3. Advanced MCP
+
+```bash
+# Install MCP Core with all features
+pip install mcp-core[all]
+
+# Initialize advanced project
+openmcp init
+
+# Deploy with enhanced capabilities
+openmcp deploy
+```
+
+<details>
+<summary>📝 Example: Add Search Backend</summary>
+
+```python
+from openmcp import OpenMCP, Config, ProviderType
+
+mcp = OpenMCP("my-app", config=Config(provider_type=ProviderType.SEARCH))
+
+@mcp.tool()
+def search_users(query: str):
+    """Search for users."""
+    return {"users": [{"name": "John"}]}
+
+# Automatically adds search_tools and call_tool!
+```
+</details>
 
 ## Protocols Supported
 
