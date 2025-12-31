@@ -150,7 +150,7 @@ def subtract(a: int, b: int):
 
 | Protocol | Status | Description |
 |-----------|---------|-------------|
-| **AWIP (Agentic Interactive Protocol)** | ✅ Supported | Concierge natively implements the Agentic Interactive Protocol (AIP) for connecting agents to web-exposed services. Tools are served dynamically, preventing model context bloat, saving cost and latency. |
+| **AIP (Agentic Interactive Protocol)** | ✅ Supported | Concierge natively implements the Agentic Interactive Protocol (AIP) for connecting agents to web-exposed services. Tools are served dynamically, preventing model context bloat, saving cost and latency. |
 | **MCP (Model Context Protocol)** | ✅ Supported | Now express Concierge workflows through MCP |
 
 ## Core Concepts
