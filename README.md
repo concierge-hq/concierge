@@ -204,7 +204,7 @@ class CheckoutStage:
 
 Interested in contributing or building with UAIP? [Reach out](mailto:arnavbalyan1@gmail.com).
 
-Interested in building apps that render in ChatGPT? Check out [OpenMCP](https://github.com/anthropics/openmcp).
+Interested in building apps that render in ChatGPT? Check out [Concierge AI](https://github.com/concierge-hq/concierge-sdk).
 
 ## Contributing
 
