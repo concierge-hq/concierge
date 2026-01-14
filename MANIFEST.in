@@ -1,4 +1,0 @@
-include README.md
-include LICENSE
-recursive-include configs *.yaml
-recursive-include web/dist *

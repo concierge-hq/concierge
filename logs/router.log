@@ -1,8 +1,0 @@
-==========================================
-Starting Concierge Router
-==========================================
-Config:       configs/default.yaml
-Host:         0.0.0.0
-Port:         8090
-Database:     concierge_router @ localhost:5432 (router-specific)
-==========================================

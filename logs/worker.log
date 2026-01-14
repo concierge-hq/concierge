@@ -1,9 +1,0 @@
-==========================================
-Starting Concierge Worker
-==========================================
-Config:       configs/default.yaml
-Host:         0.0.0.0
-Port:         8083
-State:        postgres
-Database:     concierge @ localhost:5432
-==========================================
