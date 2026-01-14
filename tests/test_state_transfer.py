@@ -5,10 +5,10 @@ This test file was created to catch the state transfer bug.
 import asyncio
 import pytest
 from pydantic import BaseModel, Field
-from concierge.core import State, task, stage, workflow, construct, StateTransfer
-from concierge.engine import Orchestrator
-from concierge.core.actions import MethodCallAction, StageTransitionAction
-from concierge.core.state_manager import get_state_manager
+from uaip.core import State, task, stage, workflow, construct, StateTransfer
+from uaip.engine import Orchestrator
+from uaip.core.actions import MethodCallAction, StageTransitionAction
+from uaip.core.state_manager import get_state_manager
 
 
 @construct()
@@ -182,7 +182,7 @@ def test_state_transfer_missing_prerequisites_blocks_transition():
         result = await orch.execute_stage_transition(transition_action)
         
         # Should fail because prerequisites aren't met
-        from concierge.core.results import StateInputRequiredResult
+        from uaip.core.results import StateInputRequiredResult
         assert isinstance(result, StateInputRequiredResult), "Should require state input"
         assert "symbol" in result.required_fields
         assert "quantity" in result.required_fields

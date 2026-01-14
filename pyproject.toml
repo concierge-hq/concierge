@@ -3,41 +3,33 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "concierge_awi"
-version = "0.2.0"
-description = "Declarative framework for building Agentic AI Services"
+name = "uaip"
+version = "0.1.2"
+description = "Universal Agent Interactive Protocol - Python SDK with a declarative framework to build Agentic AI Services"
 readme = "README.md"
 license = {file = "LICENSE"}
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 dependencies = [
-    "fastapi>=0.104.0",
-    "uvicorn>=0.24.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
     "pydantic>=2.0.0",
-    "pyyaml>=6.0",
-    "requests>=2.31.0",
+    "pyyaml>=6.0.0",
     "click>=8.0.0",
-    "openai>=1.0.0",
-    "httpx>=0.25.0",
-    "pyjwt>=2.8.0",
-    "mcp>=1.0.0",
-    "sentence-transformers>=2.0.0",
-    "numpy>=1.24.0",
 ]
 
 [project.scripts]
-concierge = "concierge.cli:cli"
+uaip = "uaip.cli:cli"
 
 [project.urls]
-Homepage = "https://github.com/Agentic-Web-Interfaces/concierge"
-Repository = "https://github.com/Agentic-Web-Interfaces/concierge"
+Homepage = "https://github.com/concierge-hq/UAIP"
+Repository = "https://github.com/concierge-hq/UAIP"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["concierge*", "services*", "openmcp*"]
+include = ["uaip*"]
 
 [tool.setuptools.package-data]
-"concierge" = ["../web/dist/**/*"]
-
+"uaip" = ["templates/mini_store/*"]

@@ -1,6 +1,6 @@
 """Test Stage - task discovery and local state."""
 import asyncio
-from concierge.core import State, task, stage
+from uaip.core import State, task, stage
 
 
 @stage(name="test_stage")
@@ -27,7 +27,7 @@ def test_stage_task_discovery():
 
 def test_stage_local_state():
     """Test that tasks can modify state"""
-    from concierge.core.state import State
+    from uaip.core.state import State
     
     state = State()
     

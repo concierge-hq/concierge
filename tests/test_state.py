@@ -1,6 +1,6 @@
 """Test State - core mutations only."""
 import pytest
-from concierge.core import State
+from uaip.core import State
 
 
 def test_state_set_get():

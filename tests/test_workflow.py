@@ -1,7 +1,7 @@
 """Test Workflow - stage registration and transitions."""
 import asyncio
-from concierge.core import State, task, stage, workflow
-from concierge.core.state_manager import get_state_manager
+from uaip.core import State, task, stage, workflow
+from uaip.core.state_manager import get_state_manager
 
 @stage(name="stage1")
 class Stage1:
