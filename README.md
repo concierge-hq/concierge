@@ -1,4 +1,4 @@
-<h1 align="center">Universal Agent Interactive Protocol (UAIP)</h1>
+<h1 align="center">Universal Agent Interactive Framework (UAIF)</h1>
 
 <p align="center">
   <a href="https://github.com/concierge-hq/UAIP" target="_blank">
