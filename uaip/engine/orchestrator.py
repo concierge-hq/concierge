@@ -29,7 +29,9 @@ class Orchestrator:
         """Initialize orchestrator (session already created by SessionManager)"""
         self.history = []
         self.pending_transition = None
-        self.required_state_fields = [] 
+        self.required_state_fields = []
+        self.last_task_result = None  # Store for render_json
+        self.did_auto_transition = False  # Track if we moved to a new stage 
     
     def get_current_stage(self) -> Stage:
         """Get current stage object"""
@@ -51,6 +53,32 @@ class Orchestrator:
             
             state_mgr = get_state_manager()
             self.current_stage_state = await state_mgr.get_stage_state(self.session_id, stage.name)
+            
+            # Store for render_json
+            self.last_task_result = result["result"]
+            self.did_auto_transition = False  # Reset before checking
+            
+            # Auto-transition to next stage with state propagation
+            if len(stage.transitions) == 1:
+                next_stage = stage.transitions[0]
+                
+                # Propagate state from current stage to next stage
+                propagation_config = self.workflow.get_propagation_config(stage.name, next_stage)
+                if propagation_config != "none":
+                    source_state_dict = await state_mgr.get_stage_state(self.session_id, stage.name)
+                    
+                    if propagation_config == "all":
+                        state_to_transfer = source_state_dict
+                    elif isinstance(propagation_config, list):
+                        state_to_transfer = {k: v for k, v in source_state_dict.items() if k in propagation_config}
+                    else:
+                        state_to_transfer = {}
+                    
+                    if state_to_transfer:
+                        await state_mgr.update_stage_state(self.session_id, next_stage, state_to_transfer)
+                
+                self.workflow.transition_to(next_stage)
+                self.did_auto_transition = True
             
             return TaskResult(
                 task_name=action.task_name,

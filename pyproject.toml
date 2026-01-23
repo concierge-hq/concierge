@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uaip"
-version = "0.1.2"
+version = "0.1.7"
 description = "Universal Agent Interactive Protocol - Python SDK with a declarative framework to build Agentic AI Services"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -24,11 +24,7 @@ uaip = "uaip.cli:cli"
 Homepage = "https://github.com/concierge-hq/UAIP"
 Repository = "https://github.com/concierge-hq/UAIP"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-
 [tool.setuptools.packages.find]
-where = ["src"]
 include = ["uaip*"]
 
 [tool.setuptools.package-data]

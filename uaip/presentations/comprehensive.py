@@ -58,58 +58,28 @@ class ComprehensivePresentation(Presentation):
     def render_json(self, orchestrator) -> dict:
         """
         Render response as structured JSON for LLM tool calling.
-        Returns tasks and transitions as tools.
+        Returns the task result and next tool (after auto-transition).
         """
         workflow = orchestrator.workflow
         current_stage = orchestrator.get_current_stage()
         
-        tools = []
-        for task_name, task in current_stage.tasks.items():
-            tools.append(task.to_schema())
+        # Return the actual task result (like MCP does)
+        result = {}
+        if orchestrator.last_task_result:
+            result = dict(orchestrator.last_task_result)
         
-        if current_stage.transitions:
-            stage_descriptions = {}
-            for target_stage_name in current_stage.transitions:
-                target_stage = workflow.get_stage(target_stage_name)
-                stage_descriptions[target_stage_name] = target_stage.description
-            
-            tools.append({
-                "name": "transition_stage",
-                "description": f"Move to a different stage in the workflow. Available stages: {', '.join(current_stage.transitions)}",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "target_stage": {
-                            "type": "string",
-                            "enum": current_stage.transitions,
-                            "description": "The stage to transition to. " + "; ".join(
-                                [f"{name}: {stage_descriptions[name]}" for name in current_stage.transitions]
-                            )
-                        }
-                    },
-                    "required": ["target_stage"]
-                }
-            })
+        # Only provide next tool if we auto-transitioned to a new stage
+        # If we didn't auto-transition, we just finished the final task
+        if getattr(orchestrator, 'did_auto_transition', False):
+            if current_stage.tasks:
+                current_task = list(current_stage.tasks.values())[0]
+                result["_next_tool"] = current_task.to_schema()
+                result["_stage"] = current_stage.name
+        else:
+            # No auto-transition = we're done (final stage has no transitions)
+            result["_complete"] = True
         
-        tools.append({
-            "name": "terminate_session",
-            "description": "End the current session",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "reason": {
-                        "type": "string",
-                        "description": "Optional reason for ending the session"
-                    }
-                },
-                "required": []
-            }
-        })
-        
-        return {
-            "content": self.content,
-            "tools": tools
-        }
+        return result
     
     def _format_stages_structure(self, workflow) -> str:
         """Format the workflow stages structure"""

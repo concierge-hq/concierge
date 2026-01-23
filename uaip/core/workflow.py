@@ -277,26 +277,30 @@ class workflow:
             workflow_cls,
             host: str = "0.0.0.0",
             port: int = 8000,
-            log_level: str = "info"
+            log_level: str = "info",
+            protocol: str = "uaip"  # "uaip" or "mcp"
         ) -> None:
             """
-            Run the workflow as an HTTP server.
+            Run the workflow as a server.
             
             Example:
                 if __name__ == "__main__":
-                    MyWorkflow.run(port=8000)
+                    MyWorkflow.run(port=8000)  # UAIP protocol (staged)
+                    MyWorkflow.run(port=8000, protocol="mcp")  # MCP protocol (flat tools)
             
             Args:
                 host: Host to bind to (default: 0.0.0.0)
                 port: Port to listen on (default: 8000)
                 log_level: Logging level (default: info)
+                protocol: "uaip" (staged) or "mcp" (flat tools)
             """
             from uaip.serving.server import run
             run(
                 workflow_cls._workflow,
                 host=host,
                 port=port,
-                log_level=log_level
+                log_level=log_level,
+                protocol=protocol
             )
         
         cls.run = run
