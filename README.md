@@ -84,10 +84,9 @@ Declare your workflow. Concierge enforces it.
 
 <br>
 <p align="center">
-  <img src="assets/concierge_workflow.svg" alt="Concierge Workflow" width="100%"/>
+  <img src="assets/concierge_example.svg" alt="Concierge Workflow" width="87%"/>
 </p>
 <br>
-
 
 ## Core Concepts
 
