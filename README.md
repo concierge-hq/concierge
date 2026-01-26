@@ -143,7 +143,7 @@ email = app.get_state("user.email")
 ```
 
 
-## Example:
+## Example
 
 ```python
 from concierge import Concierge
@@ -152,37 +152,22 @@ app = Concierge("shopping")
 
 @app.tool()
 def search_products(query: str) -> dict:
-    """Search for products by keyword."""
-    return {"products": [
-        {"id": "p2", "name": "Mouse", "price": 29},
-    ]}
+    return {"products": [{"id": "p1", "name": "Laptop", "price": 999}]}
 
 @app.tool()
-def view_product(product_id: str) -> dict:
-    """View detailed product information."""
-    return {"id": product_id, "name": "Laptop", "price": 999, "stock": 50}
-
-@app.tool()
-def add_to_cart(product_id: str, quantity: int = 1) -> dict:
-    """Add product to cart."""
+def add_to_cart(product_id: str) -> dict:
     cart = app.get_state("cart", [])
-    cart.append({"product_id": product_id, "quantity": quantity})
+    cart.append(product_id)
     app.set_state("cart", cart)
     return {"cart": cart}
 
 @app.tool()
-def view_cart() -> dict:
-    return {"cart": app.get_state("cart", [])}
-
-@app.tool()
 def checkout(payment_method: str) -> dict:
-    cart = app.get_state("cart", [])
-    order_id = f"ORD-{len(cart) * 1000}"
-    return {"order_id": order_id, "status": "confirmed"}
+    return {"order_id": "ORD-123", "status": "confirmed"}
 
 app.stages = {
-    "browse": ["search_products", "view_product"],
-    "cart": ["add_to_cart", "view_cart"],
+    "browse": ["search_products"],
+    "cart": ["add_to_cart"],
     "checkout": ["checkout"],
 }
 
@@ -191,11 +176,7 @@ app.transitions = {
     "cart": ["browse", "checkout"],
     "checkout": [],
 }
-
-if __name__ == "__main__":
-    app.run()
 ```
-
 
 ## Semantic Tool Search
 
@@ -223,33 +204,6 @@ def get_user_by_id(user_id: int): ...
 search_tools(query: str)              → Find tools by description
 call_tool(tool_name: str, args: dict) → Execute a discovered tool
 ```
-
-**Example:**
-
-```
-Agent: search_tools("refund a customer order")
-→ [refund_order, cancel_order, get_order_status]
-
-Agent: call_tool("refund_order", {"order_id": "12345"})
-→ {"status": "refunded", "amount": 99.99}
-```
-
-
-## Deployment
-
-```bash
-# Local development
-python server.py
-
-# Docker
-docker build -t my-app .
-docker run -p 8000:8000 my-app
-
-# OpenMCP (one-click cloud deployment)
-pip install openmcp-sdk
-openmcp deploy
-```
-
 
 ## API Reference
 
