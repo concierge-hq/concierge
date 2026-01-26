@@ -33,8 +33,7 @@
 
 <p align="center"><b>Declarative framework to convert MCP servers into production grade apps with workflows, state management, semantic search, and more.</b></p>
 
-Concierge is a framework for building production agentic apps. Using protocols like MCP as the transport layer, Concierge adds the missing primitives like: *stages*, *transitions*, and *state*. Define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. 
-Ensuring your agent cannot call `checkout()` before calling `add_to_cart()`.
+Concierge is a framework for building production agentic apps. Using protocols like MCP as the transport layer, Concierge adds the missing primitives: *stages*, *transitions*, and *state* ensuring your agent cannot call `checkout()` before calling `add_to_cart()`.
 
 <p align="center">
   <img src="assets/token_usage.png" alt="Token Usage" width="48%"/>
