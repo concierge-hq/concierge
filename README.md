@@ -7,8 +7,8 @@
 
 
 <p align="center">
-  <a href="https://github.com/concierge-hq/UAIP" target="_blank">
-    <img src="https://img.shields.io/badge/GitHub-UAIP-8B5CF6?style=flat&logo=github&logoColor=white&labelColor=000000" alt="GitHub"/>
+  <a href="https://github.com/concierge-hq/concierge-sdk" target="_blank">
+    <img src="https://img.shields.io/badge/GitHub-concierge--sdk-8B5CF6?style=flat&logo=github&logoColor=white&labelColor=000000" alt="GitHub"/>
   </a>
   &nbsp;
   <a href="https://discord.gg/bfT3VkhF" target="_blank">
@@ -26,186 +26,303 @@
 <p align="center">
   <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat&labelColor=000000" alt="Build Status"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=flat&labelColor=000000" alt="License"/>
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat&labelColor=000000" alt="License"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/python-3.9+-yellow?style=flat&logo=python&logoColor=white&labelColor=000000" alt="Python"/>
+  <img src="https://img.shields.io/badge/python-3.9+-8B5CF6?style=flat&logo=python&logoColor=white&labelColor=000000" alt="Python"/>
 </p>
 
-<p align="center"><b>An open framework for interoperability between autonomous agents and application services.</b></p>
+<p align="center"><b>Declarative framework to convert your MCP servers into production-grade apps with workflows, state management, semantic search, and more.</b></p>
 
-UAIP defines how autonomous agents interact with applications through explicit stages, workflows, and tasks. It guarantees invocation order and reliable execution, replacing ad-hoc prompting with verifiable contracts. UAIP is 78% more token efficient than existing protocols, eliminating context overflow and semantic loss.
-
+Concierge is a framework for building production agentic apps, served through protocols like MCP. While MCP provides the transport layer, Concierge adds the missing primitives: **stages**, **transitions**, and **state**. Define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. Ensuring your agent cannot call `checkout()` before calling `add_to_cart()`.
 
 <p align="center">
   <img src="assets/token_usage.png" alt="Token Usage" width="48%"/>
   <img src="assets/error_rate.png" alt="Error Rate" width="48%"/>
 </p>
 
-<p align="center"><i>UAIP token efficiency across benchmarks</i></p>
+<p align="center"><i>Concierge reduces token usage by 78% and error rates by 65% compared to flat tool lists</i></p>
 
 
 ## Quick Start
 
 ```bash
-# Install UAIP SDK
-pip install uaip
-
-# Initialize a new workflow project
-uaip init my-store
-
-# Run the workflow server
-cd my-store
-python main.py
+pip install concierge-sdk    # Install the SDK
+concierge init my-store      # Scaffold a new project
+cd my-store                  # Enter the project
+python main.py               # Start the server
 ```
 
-This starts a UAIP server at specified port that agents can interact with via `/initialize` and `/execute`.
+Scaffolds a Concierge app with 3 stages with a workflow and starts the local Concierge app.
 
-## Universal Agent Interactive Protocol
+**Or convert an existing MCP server:**
 
-You control agent autonomy by specifying legal tasks at each stage and valid transitions between stages. For example: agents cannot checkout before adding items to cart. UAIP enforces these rules, validates prerequisites before task execution, and ensures agents follow your defined path through the application.
+```python
+# Before
+from mcp.server.fastmcp import FastMCP
+app = FastMCP("my-server")
+
+# After
+from concierge import Concierge
+app = Concierge("my-server")
+```
+
+Your `@app.tool()` decorators are unchanged. But you get superpowers.
+
+
+## Why Concierge?
+
+When you expose tools as a flat list, agents can invoke them in any order, sessions bleed into each other, and context windows fill up before the real work begins.
+
+Concierge provides several primitives that you can annotate your tools to convert them into structured workflows that an agent can reliably navigate and interact with:
+
+- **Stages**: Group of several tools, expose only what's relevant.
+- **Transitions**: Define legal paths to the next stage that an agent can transition to.  
+- **State**: Shared distributed memory available on a stage local and a global workflow level.
+
+Declare your workflow. Concierge enforces it.
 
 <br>
 <p align="center">
-  <img src="assets/concierge_example.svg" alt="UAIP Example" width="100%"/>
+  <img src="assets/concierge_workflow.svg" alt="Concierge Workflow" width="100%"/>
 </p>
 <br>
 
-### **Tasks**
-Tasks are the smallest granularity of callable business logic. Several tasks can be defined within 1 stage. Ensuring these tasks are avialable or callable at the stage. 
+
+## Core Concepts
+
+### **Tools**
+
+Tools are your business logic. Define them exactly like FastMCP:
+
 ```python
-@task(description="Add product to shopping cart")
-def add_to_cart(self, state: State, product_id: str, quantity: int) -> dict:
-    """Adds item to cart and updates state"""
-    cart_items = state.get("cart.items", [])
-    cart_items.append({"product_id": product_id, "quantity": quantity})
-    state.set("cart.items", cart_items)
-    return {"success": True, "cart_size": len(cart_items)}
+@app.tool()
+def add_to_cart(product_id: str, quantity: int) -> dict:
+    """Add a product to the shopping cart."""
+    cart = app.get_state("cart", [])
+    cart.append({"product_id": product_id, "quantity": quantity})
+    app.set_state("cart", cart)
+    return {"success": True, "cart_size": len(cart)}
 ```
 
 ### **Stages**
-A stage is a logical sub-step towards a goal, Stage can have several tasks grouped together, that an agent can call at a given point. 
+
+A stage groups related tools that should be available together. Only tools within the current stage are visible to the agent.
+
 ```python
-@stage(name="product")
-class ProductStage:
-    @task(description="Add product to shopping cart")
-    def add_to_cart(self, state: State, product_id: str, quantity: int) -> dict:
-        """Adds item to cart"""
-        
-    @task(description="Save product to wishlist")
-    def add_to_wishlist(self, state: State, product_id: str) -> dict:
-        """Saves item for later"""
-        
+app.stages = {
+    "browse": ["search_products", "view_product"],
+    "cart": ["add_to_cart", "remove_from_cart", "view_cart"],
+    "checkout": ["apply_coupon", "complete_purchase"],
+}
+```
+
+### **Transitions**
+
+Transitions define legal moves between stages. Enforce certain stages or guarentee tool invocation order:
+
+```python
+app.transitions = {
+    "browse": ["cart"],              # Can only go to cart
+    "cart": ["browse", "checkout"],  # Can go back or proceed
+    "checkout": [],                  # Terminal stage
+}
 ```
 
 ### **State**
-A state is a global context that is maintained by the protocol, parts of which can get propagated to other stages as the agent transitions and navigates through stages. 
-```python
-# State persists across stages and tasks
-state.set("cart.items", [{"product_id": "123", "quantity": 2}])
-state.set("user.email", "user@example.com")
-state.set("cart.total", 99.99)
 
-# Retrieve state values
-items = state.get("cart.items", [])
-user_email = state.get("user.email")
-```
+State can be scoped to a stage or available globally across a session. For stateful servers, state is atomic and consistent across distributed replicas. Each session is isolated:
 
-### **Workflow**
-A workflow is a logic grouping of several stages, you can define graphs of stages which represent legal moves to other stages within workflow.
 ```python
-@workflow(name="shopping")
-class ShoppingWorkflow:
-    discovery = DiscoveryStage      # Search and filter products
-    product = ProductStage          # View product details
-    selection = SelectionStage      # Add to cart/wishlist
-    cart = CartStage                # Manage cart items
-    checkout = CheckoutStage        # Complete purchase
-    
-    transitions = {
-        discovery: [product, selection],
-        product: [selection, discovery],
-        selection: [cart, discovery, product],
-        cart: [checkout, selection, discovery],
-        checkout: []
-    }
+# Set state (scoped to current session)
+app.set_state("cart", [{"product_id": "123", "quantity": 2}])
+app.set_state("user.email", "user@example.com")
+
+# Get state
+cart = app.get_state("cart", [])
+email = app.get_state("user.email")
 ```
 
 
-## Examples
-
-### Multi-Stage Workflow
+## Example:
 
 ```python
-@workflow(name="amazon_shopping")
-class AmazonShoppingWorkflow:
-    browse = BrowseStage         # Search and filter products
-    select = SelectStage         # Add items to cart
-    checkout = CheckoutStage     # Complete transaction
-    
-    transitions = {
-        browse: [select],
-        select: [browse, checkout],
-        checkout: []
-    }
+from concierge import Concierge
+
+app = Concierge("shopping")
+
+# ═══════════════════════════════════════════════════════════
+# Stage: browse — Agent can search and discover products
+# ═══════════════════════════════════════════════════════════
+
+@app.tool()
+def search_products(query: str) -> dict:
+    """Search for products by keyword."""
+    return {"products": [
+        {"id": "p1", "name": "Laptop", "price": 999},
+        {"id": "p2", "name": "Mouse", "price": 29},
+    ]}
+
+@app.tool()
+def view_product(product_id: str) -> dict:
+    """View detailed product information."""
+    return {"id": product_id, "name": "Laptop", "price": 999, "stock": 50}
+
+# ═══════════════════════════════════════════════════════════
+# Stage: cart — Manage shopping cart
+# ═══════════════════════════════════════════════════════════
+
+@app.tool()
+def add_to_cart(product_id: str, quantity: int = 1) -> dict:
+    """Add product to cart."""
+    cart = app.get_state("cart", [])
+    cart.append({"product_id": product_id, "quantity": quantity})
+    app.set_state("cart", cart)
+    return {"cart": cart}
+
+@app.tool()
+def view_cart() -> dict:
+    """View current cart contents."""
+    return {"cart": app.get_state("cart", [])}
+
+# ═══════════════════════════════════════════════════════════
+# Stage: checkout — Complete the purchase
+# ═══════════════════════════════════════════════════════════
+
+@app.tool()
+def checkout(payment_method: str) -> dict:
+    """Process payment and complete order."""
+    cart = app.get_state("cart", [])
+    order_id = f"ORD-{len(cart) * 1000}"
+    app.set_state("cart", [])
+    return {"order_id": order_id, "status": "confirmed"}
+
+# ═══════════════════════════════════════════════════════════
+# Define stages, and legal transitions
+# ═══════════════════════════════════════════════════════════
+
+app.stages = {
+    "browse": ["search_products", "view_product"],
+    "cart": ["add_to_cart", "view_cart"],
+    "checkout": ["checkout"],
+}
+
+app.transitions = {
+    "browse": ["cart"],
+    "cart": ["browse", "checkout"],
+    "checkout": [],
+}
+
+if __name__ == "__main__":
+    app.run()
 ```
 
-### Stage with Tasks
+
+## Semantic Tool Search
+
+When you have 100+ tools, even staged workflows aren't enough. Enable semantic search to collapse all tools into just two (search and invoke):
 
 ```python
-@stage(name="browse")
-class BrowseStage:
-    @task(description="Search for products by keyword")
-    def search_products(self, state: State, query: str) -> dict:
-        """Returns matching products"""
-        
-    @task(description="Filter products by price range")
-    def filter_by_price(self, state: State, min_price: float, max_price: float) -> dict:
-        """Filters current results by price"""
-        
-    @task(description="Sort products by rating or price")
-    def sort_products(self, state: State, sort_by: str) -> dict:
-        """Sorts: 'rating', 'price_low', 'price_high'"""
+from concierge import Concierge, Config, ProviderType
 
-@stage(name="select")
-class SelectStage:
-    @task(description="Add product to shopping cart")
-    def add_to_cart(self, state: State, product_id: str, quantity: int) -> dict:
-        """Adds item to cart"""
-        
-    @task(description="Save product to wishlist")
-    def add_to_wishlist(self, state: State, product_id: str) -> dict:
-        """Saves item for later"""
-        
-    @task(description="Star product for quick access")
-    def star_product(self, state: State, product_id: str) -> dict:
-        """Stars item as favorite"""
-        
-    @task(description="View product details")
-    def view_details(self, state: State, product_id: str) -> dict:
-        """Shows full product information"""
+app = Concierge("large-api", config=Config(
+    provider_type=ProviderType.SEARCH,
+    max_results=5
+))
+
+# Register hundreds of tools...
+@app.tool()
+def search_users(query: str): ...
+@app.tool()
+def get_user_by_id(user_id: int): ...
+@app.tool()
+def update_user_email(user_id: int, email: str): ...
+@app.tool()
+def refund_order(order_id: str): ...
+# ... hundreds more
 ```
 
-### Prerequisites
+**What the agent sees:**
+
+```
+search_tools(query: str)              → Find tools by description
+call_tool(tool_name: str, args: dict) → Execute a discovered tool
+```
+
+**Example:**
+
+```
+Agent: search_tools("refund a customer order")
+→ [refund_order, cancel_order, get_order_status]
+
+Agent: call_tool("refund_order", {"order_id": "12345"})
+→ {"status": "refunded", "amount": 99.99}
+```
+
+
+## Deployment
+
+```bash
+# Local development
+python server.py
+
+# Docker
+docker build -t my-app .
+docker run -p 8000:8000 my-app
+
+# OpenMCP (one-click cloud deployment)
+pip install openmcp
+openmcp deploy
+```
+
+
+## API Reference
 
 ```python
-@stage(name="checkout", prerequisites=["cart.items", "user.payment_method"])
-class CheckoutStage:
-    @task(description="Apply discount code")
-    def apply_discount(self, state: State, code: str) -> dict:
-        """Validates and applies discount"""
-        
-    @task(description="Complete purchase")
-    def complete_purchase(self, state: State) -> dict:
-        """Processes payment and creates order"""
+from concierge import Concierge, Config, ProviderType
+
+# Initialize
+app = Concierge("name", config=Config(
+    provider_type=ProviderType.PLAIN,  # or SEARCH
+    max_results=5,
+))
+
+# Tools
+@app.tool()
+def my_tool(): ...
+
+# State
+app.get_state(key, default=None)
+app.set_state(key, value)
+
+# Workflow
+app.stages = {"stage": ["tool1", "tool2"]}
+app.transitions = {"stage": ["next_stage"]}
+app.enforce_completion = True
+
+# Run
+app.run()                      # stdio
+app.streamable_http_app()      # HTTP
 ```
+
 
 **We are building the agentic web. Come join us.**
 
-Interested in contributing or building with UAIP? [Reach out](mailto:arnavbalyan1@gmail.com).
-
-Interested in building apps that render in ChatGPT? Check out [Concierge AI](https://github.com/concierge-hq/concierge-sdk).
+Interested in contributing or building with Concierge? [Reach out](mailto:arnavbalyan1@gmail.com).
 
 ## Contributing
 
 Contributions are welcome. Please open an issue or submit a pull request.
 
+<p align="center">
+  <a href="https://github.com/concierge-hq/concierge-sdk/discussions" target="_blank">
+    <img src="https://img.shields.io/badge/Discussions-Ask_Questions-blue?style=flat&logo=github&logoColor=white&labelColor=000000" alt="Discussions"/>
+  </a>
+  &nbsp;
+  <a href="https://github.com/concierge-hq/concierge-sdk/issues" target="_blank">
+    <img src="https://img.shields.io/badge/Issues-Report_Bugs-red?style=flat&logo=github&logoColor=white&labelColor=000000" alt="Issues"/>
+  </a>
+  &nbsp;
+  <a href="https://discord.gg/bfT3VkhF" target="_blank">
+    <img src="https://img.shields.io/badge/Discord-Chat-5865F2?style=flat&logo=discord&logoColor=white&labelColor=000000" alt="Discord"/>
+  </a>
+</p>
