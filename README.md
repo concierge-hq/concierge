@@ -31,9 +31,9 @@
   <img src="https://img.shields.io/badge/python-3.9+-8B5CF6?style=flat&logo=python&logoColor=white&labelColor=000000" alt="Python"/>
 </p>
 
-<p align="center"><b>Declarative framework to convert your MCP servers into production-grade apps with workflows, state management, semantic search, and more.</b></p>
+<p align="center"><b>Declarative framework to convert your MCP servers into production grade apps with workflows, state management, semantic search, and more.</b></p>
 
-Concierge is a framework for building production agentic apps, served through protocols like MCP. While MCP provides the transport layer, Concierge adds the missing primitives: **stages**, **transitions**, and **state**. Define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. Ensuring your agent cannot call `checkout()` before calling `add_to_cart()`.
+Concierge is a framework for building production agentic apps, served through protocols like MCP. While MCP provides the transport layer, Concierge adds the missing primitives like: **stages**, **transitions**, and **state**. Define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. Ensuring your agent cannot call `checkout()` before calling `add_to_cart()`.
 
 <p align="center">
   <img src="assets/token_usage.png" alt="Token Usage" width="48%"/>
@@ -270,7 +270,7 @@ docker build -t my-app .
 docker run -p 8000:8000 my-app
 
 # OpenMCP (one-click cloud deployment)
-pip install openmcp
+pip install openmcp-sdk
 openmcp deploy
 ```
 
