@@ -41,7 +41,7 @@ Ensuring your agent cannot call `checkout()` before calling `add_to_cart()`.
   <img src="assets/error_rate.png" alt="Error Rate" width="48%"/>
 </p>
 
-<p align="center"><i>Concierge reduces token usage by 78% and error rates by 65% compared to flat tool lists</i></p>
+<p align="center"><i>Concierge apps reduce token usage by 78% and error rates by 65% compared to flat tool lists</i></p>
 
 
 ## Quick Start
