@@ -31,9 +31,9 @@
   <img src="https://img.shields.io/badge/python-3.9+-8B5CF6?style=flat&logo=python&logoColor=white&labelColor=000000" alt="Python"/>
 </p>
 
-<p align="center"><b>Declarative framework to convert MCP servers into production grade apps with workflows, state management, semantic search, and more.</b></p>
+<p align="center"><b>Declarative framework to build MCP workflows with state management, semantic search, and more.</b></p>
 
-Concierge is a framework for building production agentic apps. Using protocols like MCP as the transport layer, Concierge adds the missing primitives like: *stages*, *transitions*, and *state*. Define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. 
+Concierge is a library for building stateful agentic apps. Using protocols like MCP as the transport layer, Concierge provides primitives like: *stages*, *transitions*, and *state*. Define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. 
 Ensuring your agent cannot call `checkout()` before calling `add_to_cart()`.
 
 <p align="center">
@@ -62,10 +62,10 @@ app = FastMCP("my-server")
 
 # After
 from concierge import Concierge
-app = Concierge("my-server")
+app = Concierge(FastMCP("my-server"))
 ```
 
-Your `@app.tool()` decorators are unchanged. But you get superpowers.
+Your `@app.tool()` and other decorators are unchanged. But you get superpowers.
 
 ## Why Concierge?
 
