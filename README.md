@@ -69,7 +69,7 @@ Your `@app.tool()` and other decorators are unchanged. But you get superpowers.
 
 ## Why Concierge?
 
-When you expose tools as a flat list, agents can invoke them in any order, semantic loss creeps in as tool count grows, and context windows fill up before the real work begins.
+When you expose tools as a flat list, agents can invoke them in any order, semantic loss creeps in as tool count grows, and context windows fill rapidly.
 
 Concierge provides several primitives that you can annotate your tools to convert them into structured workflows that an agent can reliably navigate and interact with:
 
