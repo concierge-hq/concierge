@@ -33,7 +33,7 @@
 
 <p align="center"><b>Declarative framework to build MCP workflows with state management, semantic search, and more.</b></p>
 
-Concierge is a library for building stateful agentic apps. Using protocols like MCP as the transport layer, Concierge provides rich primitives like: *stages*, *transitions*, and *state*. You can define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. 
+Concierge is a library for building stateful agentic apps. Using protocols like MCP as the transport layer, Concierge provides primitives like: *stages*, *transitions*, and *state*. You can define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. 
 Ensuring your agent cannot call tools like `checkout()` before calling `add_to_cart()`.
 
 <p align="center">
