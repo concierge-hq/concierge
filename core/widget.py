@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 
 DEFAULT_ANNOTATIONS = {
@@ -31,20 +33,20 @@ class Widget:
     uri: str
     
     # Mode 1: Inline HTML
-    html: str | None = None
+    html: Optional[str] = None
     
     # Mode 2: External URL
-    url: str | None = None
+    url: Optional[str] = None
     
     # Mode 3: Entrypoint (filename only, e.g., "pizzaz.html")
-    entrypoint: str | None = None
+    entrypoint: Optional[str] = None
     
     # Mode 4: Dynamic function (takes tool args, returns HTML string)
-    html_fn: Callable[[dict], str] | None = None
+    html_fn: Optional[Callable[[dict], str]] = None
 
-    name: str | None = None
-    description: str | None = None
-    title: str | None = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    title: Optional[str] = None
     mime_type: str = "text/html+skybridge"
     invoking: str = "Loading..."
     invoked: str = "Done"
@@ -52,7 +54,7 @@ class Widget:
     annotations: dict = field(default_factory=lambda: DEFAULT_ANNOTATIONS.copy())
     
     # Last args from tool call (for dynamic HTML generation)
-    _last_args: dict | None = field(default=None, repr=False)
+    _last_args: Optional[dict] = field(default=None, repr=False)
     
     @property
     def mode(self) -> WidgetMode:
@@ -67,7 +69,7 @@ class Widget:
         raise ValueError(f"Widget {self.name}: must specify html, url, entrypoint, or html_fn")
     
     @property
-    def dist_file(self) -> str | None:
+    def dist_file(self) -> Optional[str]:
         """For entrypoint mode: the output path in dist/"""
         if self.entrypoint:
             # entrypoints/foo.html → dist/entrypoints/foo.html
