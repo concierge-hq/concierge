@@ -9,7 +9,7 @@ from pathlib import Path
 
 API = os.getenv("CONCIERGE_API", "https://getconcierge.app")
 CREDS = Path.home() / ".concierge" / "credentials.json"
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 # Basic MCP template (non-chatgpt) - Shopping workflow with 3 stages
 TEMPLATE_MAIN = '''"""Shopping workflow with Concierge stages."""
@@ -158,7 +158,11 @@ def generate_project_id(name):
 
 
 def get_settings_json(project_id):
-    return json.dumps({"command": "python main.py", "project_id": project_id})
+    return json.dumps({
+        "command": "python main.py",
+        "project_id": project_id,
+        "state_backend": "postgres"
+    }, indent=2)
 
 
 def load_credentials():

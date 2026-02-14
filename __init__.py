@@ -1,492 +1,645 @@
-#!/usr/bin/env python3
-"""Concierge CLI - Structured AI workflows with staged tool execution"""
+"""Concierge SDK - Structured AI workflows with staged tool execution"""
+from __future__ import annotations
+
 import os
-import sys
-import json
+import subprocess
 import time
-import shutil
+from enum import Enum
+from functools import wraps
 from pathlib import Path
+from typing import Any, Callable, List, Dict, Optional
 
-API = os.getenv("CONCIERGE_API", "https://getconcierge.app")
-CREDS = Path.home() / ".concierge" / "credentials.json"
-VERSION = "0.3.0"
+import mcp.types as types
+from mcp.types import Tool as MCPTool
+from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.server import Context
 
-# Basic MCP template (non-chatgpt) - Shopping workflow with 3 stages
-TEMPLATE_MAIN = '''"""Shopping workflow with Concierge stages."""
-import os
-from concierge import Concierge
+from concierge.backends.vanilla_backend import VanillaBackend
+from concierge.core.widget import Widget, WidgetMode
+from concierge.telemetry import metrics, ENABLED as METRICS_ENABLED
+from concierge.adapters.raw_server_adapter import RawServerAdapter
+from concierge.state import get_default_backend
+from concierge.state.base import StateBackend
+from mcp.server.lowlevel.server import request_ctx
 
-app = Concierge("{name}")
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Stage: browse — Search and discover products
-# ═══════════════════════════════════════════════════════════════════════════════
-
-@app.tool()
-def search_products(query: str = "") -> dict:
-    """Search for products in the catalog."""
-    products = [
-        {{"id": "p1", "name": "Laptop", "price": 999}},
-        {{"id": "p2", "name": "Mouse", "price": 29}},
-        {{"id": "p3", "name": "Keyboard", "price": 79}},
-    ]
-    if query:
-        products = [p for p in products if query.lower() in p["name"].lower()]
-    return {{"products": products}}
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Stage: cart — Manage shopping cart
-# ═══════════════════════════════════════════════════════════════════════════════
-
-@app.tool()
-def add_to_cart(product_id: str, quantity: int = 1) -> dict:
-    """Add a product to the shopping cart."""
-    cart = app.get_state("cart", [])
-    cart.append({{"product_id": product_id, "quantity": quantity}})
-    app.set_state("cart", cart)
-    return {{"status": "added", "cart": cart}}
-
-
-@app.tool()
-def view_cart() -> dict:
-    """View the current shopping cart."""
-    return {{"cart": app.get_state("cart", [])}}
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Stage: checkout — Complete the purchase
-# ═══════════════════════════════════════════════════════════════════════════════
-
-@app.tool()
-def checkout(payment_method: str) -> dict:
-    """Complete the checkout process."""
-    cart = app.get_state("cart", [])
-    if not cart:
-        return {{"status": "error", "message": "Cart is empty"}}
-    order_id = f"ORD-{{len(cart) * 1000}}"
-    app.set_state("cart", [])
-    return {{"order_id": order_id, "status": "confirmed"}}
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# Workflow: browse → cart → checkout
-# ═══════════════════════════════════════════════════════════════════════════════
-
-app.stages = {{
-    "browse": ["search_products"],
-    "cart": ["add_to_cart", "view_cart"],
-    "checkout": ["checkout"],
-}}
-
-app.transitions = {{
-    "browse": ["cart"],
-    "cart": ["browse", "checkout"],
-    "checkout": [],
-}}
-
-
-http_app = app.streamable_http_app()
-
-if __name__ == "__main__":
-    import uvicorn
-    from starlette.middleware.cors import CORSMiddleware
-    
-    http_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["mcp-session-id"],
-    )
-    
-    port = int(os.getenv("PORT", 8000))
-    print(f"Starting server on http://localhost:{{port}}/mcp", flush=True)
-    uvicorn.run(http_app, host="0.0.0.0", port=port)
-'''
-
-TEMPLATE_README = '''# {name}
-
-Shopping workflow with Concierge stages: `browse` → `cart` → `checkout`
-
-## Run locally
-
-```bash
-pip install -r requirements.txt
-python main.py
-```
-
-Server starts at `http://localhost:8000/mcp`
-
-## Deploy
-
-```bash
-concierge deploy
-```
-
-## Workflow
-
-| Stage | Tools | Next |
-|-------|-------|------|
-| browse | `search_products` | cart |
-| cart | `add_to_cart`, `view_cart` | browse, checkout |
-| checkout | `checkout` | — |
-
-Agents cannot call `checkout` before adding items to cart.
-'''
-
-TEMPLATE_REQUIREMENTS = '''concierge-sdk
-uvicorn
-starlette
-'''
-
-# Colors
-def dim(s): return f"\033[2m{s}\033[0m"
-def green(s): return f"\033[32m{s}\033[0m"
-def cyan(s): return f"\033[36m{s}\033[0m"
-def bold(s): return f"\033[1m{s}\033[0m"
-
-
-def generate_project_id(name):
-    """Generate unique project ID: name + random suffix"""
-    import random
-    import string
-    suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-    clean_name = name.lower().replace("_", "-").replace(" ", "-")[:20]
-    return f"{clean_name}-{suffix}"
-
-
-def get_settings_json(project_id):
-    return json.dumps({"command": "python main.py", "project_id": project_id})
-
-
-def load_credentials():
-    if CREDS.exists():
-        return json.loads(CREDS.read_text())
-    return None
-
-
-def save_credentials(creds):
-    CREDS.parent.mkdir(parents=True, exist_ok=True)
-    CREDS.write_text(json.dumps(creds, indent=2))
-
-
-def get_templates_dir():
-    """Get path to bundled templates directory"""
-    import importlib.resources
-    return importlib.resources.files("concierge") / "templates"
-
-
-def login():
-    """Authenticate with Concierge"""
-    import webbrowser
-    from secrets import token_urlsafe
-    import httpx
-    
-    creds = load_credentials()
-    if creds and creds.get("api_key"):
-        print(f"\n  {green('✓')} Already authenticated\n")
-        return creds["api_key"]
-
-    session = token_urlsafe(16)
-    url = f"{API}/login?session={session}&mode=cli"
-    
-    print(f"\n  {bold('☁  Concierge')}\n")
-    print(f"  Opening browser to authenticate...\n")
-    
-    # webbrowser.open(url)
-    print(f"  {dim('If browser does not open, visit:')}")
-    print(f"  {dim(url)}\n")
-    
-    print(f"  Waiting for authentication ", end="", flush=True)
-    
-    frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-    i = 0
-    for _ in range(120):
-        print(f"\r  Waiting for authentication {frames[i % 10]}", end="", flush=True)
-        time.sleep(1)
-        i += 1
-        
-        r = httpx.get(f"{API}/auth/status", params={"session": session}, timeout=5)
-        data = r.json()
-        if data.get("status") == "complete":
-            api_key = data["api_key"]
-            save_credentials({"api_key": api_key})
-            print(f"\r  {green('✓')} Authenticated                    \n")
-            return api_key
-    
-    print(f"\r  Timeout. Please try again.        \n")
-    sys.exit(1)
-
-
-def logout(quiet=False):
-    """Clear stored credentials"""
-    if CREDS.exists():
-        CREDS.unlink()
-    if not quiet:
-        print(f"\n  {green('✓')} Logged out\n")
-
-
-def deploy(project_path="."):
-    """Deploy an MCP server"""
-    import tarfile
-    import tempfile
-    import httpx
-    
-    start_total = time.time()
-    path = Path(project_path).resolve()
-    
-    # settings.json is required
-    settings_file = path / "settings.json"
-    if not settings_file.exists():
-        print(f"\n  {dim('Error:')} settings.json not found")
-        print(f"  {dim('Run:')} concierge init\n")
-        sys.exit(1)
-    
+def _is_raw_server(obj: Any) -> bool:
+    """Check if obj is a raw mcp.server.Server (not FastMCP)."""
     try:
-        settings = json.loads(settings_file.read_text())
-        project_id = settings.get("project_id")
-        if not project_id:
-            print(f"\n  {dim('Error:')} project_id missing in settings.json\n")
-            sys.exit(1)
-    except json.JSONDecodeError:
-        print(f"\n  {dim('Error:')} Invalid settings.json\n")
-        sys.exit(1)
-    
-    creds = load_credentials()
-    if not creds or not creds.get("api_key"):
-        api_key = login()
-    else:
-        api_key = creds["api_key"]
-    
-    print(f"\n  {bold('☁  Deploying')} {cyan(project_id)}\n")
-    
-    # Package (exclude node_modules, dist, venv, etc)
-    start_pack = time.time()
-    print(f"  Packaging...", end="", flush=True)
-    
-    skip = {"__pycache__", "node_modules", "dist", ".venv", "venv", ".git"}
-    
-    def add_filtered(tar, item, arcname):
-        if item.name.startswith(".") or item.name in skip:
-            return
-        if item.is_file():
-            tar.add(item, arcname=arcname)
-        elif item.is_dir():
-            for sub in item.iterdir():
-                add_filtered(tar, sub, f"{arcname}/{sub.name}")
-    
-    with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp:
-        with tarfile.open(tmp.name, "w:gz") as tar:
-            for item in path.iterdir():
-                add_filtered(tar, item, item.name)
-        tmp_path = tmp.name
-    
-    size = os.path.getsize(tmp_path) / 1024
-    print(f"\r  Packaged {dim(f'{size:.1f}KB')} {green('✓')}")
-    
-    # Upload
-    print(f"  Uploading...", end="", flush=True)
-    
-    try:
-        with open(tmp_path, "rb") as f:
-            r = httpx.post(
-                f"{API}/deploy",
-                params={"project_id": project_id},
-                files={"file": ("project.tar.gz", f, "application/gzip")},
-                headers={"Authorization": f"Bearer {api_key}"},
-                timeout=60
-            )
-        os.unlink(tmp_path)
-        
-        if r.status_code == 401:
-            print(f"\r  {dim('○')} Session expired, re-authenticating...\n")
-            logout(quiet=True)
-            api_key = login()
-            return deploy(project_path)
-        
-        if r.status_code != 200:
-            print(f"\r  {dim('○')} Error: {r.text}\n")
-            sys.exit(1)
-        
-        print(f"\r  Uploaded {green('✓')}              ")
-        
-        data = r.json()
-        total_time = time.time() - start_total
-        
-        print(f"\n  {green('●')} Live at {bold(data['url'])}")
-        print(f"  ⚡ {dim(f'Deployed in {total_time:.1f}s')}")
-        
-        return project_id, api_key, data['url']
-        
-    except KeyboardInterrupt:
-        print(f"\n\n  {dim('Cancelled')}\n")
-        sys.exit(0)
-    except Exception as e:
-        print(f"\r  {dim('○')} Error: {e}\n")
-        sys.exit(1)
+        from mcp.server import Server as RawServer
+        return isinstance(obj, RawServer) and not isinstance(obj, FastMCP)
+    except ImportError:
+        return False
+
+class ProviderType(Enum):
+    PLAIN = "plain"
+    SEARCH = "search"
 
 
-def stream_logs(project_id: str, api_key: str, url: str = None):
-    """Stream logs from deployed project"""
-    import httpx
+def _get_provider_class(provider_type: ProviderType):
+    """Lazy load provider to avoid importing optional dependencies."""
+    if provider_type == ProviderType.SEARCH:
+        from concierge.backends.search_backend import SearchBackend
+        return SearchBackend
+    return VanillaBackend
+
+
+class Config:
+    def __init__(self, max_results=5, provider_type=ProviderType.PLAIN, model=None):
+        self.max_results = max_results
+        self.provider_type = provider_type
+        self.model = model
+
+
+IFRAME_TEMPLATE = '''<!DOCTYPE html>
+<html>
+<head><style>*{margin:0;padding:0}iframe{width:100%;height:100vh;border:none}</style></head>
+<body><iframe src="{url}"></iframe></body>
+</html>'''
+
+
+DEFAULT_WORKFLOW_INSTRUCTIONS = """
+You are interacting with workflow which is self discoverable. This server unlocks new tools as you progress through the workflow.
+You must ensure to call the relevant tools wherever applicable. Do not terminate early, the workflow will indicate when no more stages or tools are available. Do not assume you are done, unless the tools/workflow indicates this.
+You are an autonomous agent performing long running tasks on the workflow. Only interrupt to ask the user if a tool requires SPECIFIC input that you dont have or need more clarity about. DO NOT ASSUME ANY DETAIL, pause and ask use when unsure.
+Trust the workflow, the workflow is self-describing. Each stage transition reveals new capabilities. Your goal is to reach the terminal stage by executing tools and navigating stages.
+""".strip()
+
+
+class Concierge:
+
+    def __init__(
+        self,
+        server,
+        *,
+        config=Config(),
+        assets_dir: Optional[str] = None,
+        state_backend: Optional[StateBackend] = None,
+        workflow_instructions: Optional[str] = None,
+        **fastmcp_kwargs
+    ):
+        if isinstance(server, FastMCP):
+            self._server = server
+            self._is_raw_server = False
+        elif _is_raw_server(server):
+            self._server = RawServerAdapter(server)
+            self._is_raw_server = True
+        else:
+            self._server = FastMCP(server, **fastmcp_kwargs)
+            self._is_raw_server = False
+        self._config = config
+        
+        # Set workflow instructions on the underlying server
+        self._workflow_instructions = workflow_instructions
+        existing = self._server.instructions or ""
+        new_instructions = workflow_instructions or DEFAULT_WORKFLOW_INSTRUCTIONS
+        if existing:
+            self._server._mcp_server.instructions = f"{existing}\n\n{new_instructions}"
+        else:
+            self._server._mcp_server.instructions = new_instructions
+        self._widgets: List[Widget] = []
+        self._pending_resources: List[types.Resource] = []
+        self._assets_dir = Path(assets_dir) if assets_dir else Path.cwd() / "assets"
+
+        provider_cls = _get_provider_class(config.provider_type)
+        self._provider = provider_cls()
+        self._provider.initialize(config)
+        
+        # State backend (in-memory by default, or from CONCIERGE_STATE_URL env var)
+        self._state = state_backend or get_default_backend()
+        
+        self._stages: Dict[str, List[str]] = {}       # stage_name -> [tool_names]
+        self._transitions: Dict[str, List[str]] = {}  # stage_name -> [next_stages]
+        self._default_stage: Optional[str] = None     # First stage (for new sessions)
+        self._enforce_completion = True               # Require LLM to reach terminal stage
     
-    fade = [
-        lambda s: f"\033[38;5;239m{s}\033[0m",
-        lambda s: f"\033[38;5;244m{s}\033[0m",
-        lambda s: f"\033[38;5;250m{s}\033[0m",
-        lambda s: f"\033[38;5;255m{s}\033[0m",
-    ]
+    @property
+    def enforce_completion(self) -> bool:
+        """If True, instruct LLM that it must continue until reaching a terminal stage."""
+        return self._enforce_completion
     
-    print(f"  {dim('╶───')}\n\n\n\n")
-    lines = ["", "", "", ""]
+    @enforce_completion.setter
+    def enforce_completion(self, value: bool):
+        self._enforce_completion = value
     
-    try:
-        with httpx.stream("GET", f"{API}/logs/{project_id}",
-                         headers={"Authorization": f"Bearer {api_key}"},
-                         timeout=httpx.Timeout(connect=30, read=300, write=30, pool=30)) as r:
-            if r.status_code != 200:
-                print(f"\033[4A\033[2K  {dim('Could not connect')}")
-                return
+    def _is_terminal_stage(self, stage: str) -> bool:
+        """A stage is terminal if it has no outgoing transitions."""
+        return not self._transitions.get(stage, [])
+    
+    def _get_session_stage(self, session_id: Optional[str]) -> str:
+        """Get current stage for a session. Returns default stage for new/unknown sessions."""
+        if session_id:
+            stage = self._state.get_session_stage(session_id)
+            if stage:
+                return stage
+        return self._default_stage or list(self._stages.keys())[0]
+    
+    def _set_session_stage(self, session_id: Optional[str], stage: str) -> None:
+        """Set current stage for a session."""
+        if session_id:
+            self._state.set_session_stage(session_id, stage)
+
+    @property
+    def stages(self) -> Dict[str, List[str]]:
+        """Get stages mapping: stage_name → [tool_names]"""
+        return self._stages
+    
+    @stages.setter
+    def stages(self, value: Dict[str, List[str]]):
+        """Declaratively assign existing tools to stages.
+        
+        Example:
+            app.stages = {
+                "browse": ["search_items", "view_details"],
+                "checkout": ["add_to_cart", "pay"],
+            }
+        """
+        self._stages = value
+    
+    @property
+    def transitions(self) -> Dict[str, List[str]]:
+        """Get transitions: stage_name : [allowed_next_stages]"""
+        return self._transitions
+    
+    @transitions.setter
+    def transitions(self, value: Dict[str, List[str]]):
+        """Define allowed stage transitions.
+        
+        Example:
+            app.transitions = {
+                "browse": ["checkout"],
+                "checkout": ["payment"],
+                "payment": [],
+            }
+        """
+        self._transitions = value
+    
+    def stage(self, name: str) -> Callable:
+        """Decorator to assign a tool to a stage.
+        
+        Example:
+            @app.stage("browse")
+            @app.tool()
+            def search_items(query: str):
+                return {"items": [...]}
+        """
+        def decorator(fn: Callable) -> Callable:
+            tool_name = fn.__name__
+            if name not in self._stages:
+                self._stages[name] = []
+            if tool_name not in self._stages[name]:
+                self._stages[name].append(tool_name)
+            return fn
+        return decorator
+    
+    def tool(self, **kwargs) -> Callable:
+        """Register a tool. Delegates to underlying FastMCP.
+        
+        Example:
+            @app.tool()
+            def my_tool(arg: str) -> dict:
+                return {"result": arg}
+        """
+        return self._server.tool(**kwargs)
+    
+    def _get_current_session_id(self) -> str:
+        """Get current session ID from request context."""
+        ctx = request_ctx.get()
+        return ctx.request.headers.get('mcp-session-id')
+    
+    def get_state(self, key: str, default: Any = None) -> Any:
+        """Get a value from session-aware state."""
+        session_id = self._get_current_session_id()
+        value = self._state.get_state(session_id, key)
+        return value if value is not None else default
+    
+    def set_state(self, key: str, value: Any) -> None:
+        """Set a value in session-aware state."""
+        session_id = self._get_current_session_id()
+        self._state.set_state(session_id, key, value)
+    
+    def clear_session_state(self, session_id: str) -> None:
+        """Clear all state for a session."""
+        self._state.clear_session(session_id)
+    
+    def _setup_staged_tools(self) -> None:
+        """Override list_tools to only return current stage tools + transition tool."""
+        if not self._stages:
+            return  # No stages defined, use default flat list
+        
+        # Set default stage to first stage (for new sessions)
+        if self._default_stage is None:
+            self._default_stage = list(self._stages.keys())[0]
+        
+        instance = self 
+        
+        async def _handle_next_stage(target_stage: str, ctx: Context = None) -> dict:
+            """Transition to the next stage in the workflow."""
+            req_ctx = request_ctx.get()
+            session_id = req_ctx.request.headers.get('mcp-session-id')
             
-            buffer = ""
-            for chunk in r.iter_bytes():
-                buffer += chunk.decode("utf-8", errors="replace")
-                while "\n" in buffer:
-                    line, buffer = buffer.split("\n", 1)
-                    if line.strip():
-                        lines = lines[1:] + [line[:72]]
-                        print(f"\033[4A", end="")
-                        for i, l in enumerate(lines):
-                            print(f"\033[2K  {fade[i](l) if l else ''}")
-    except KeyboardInterrupt:
-        print(f"\033[4A\033[J  {dim('Done')}\n")
-    except httpx.RemoteProtocolError:
-        print(f"\033[4A\033[J  {dim('Connection closed (build may still be running)')}\n")
-        if url:
-            print(f"  {dim('Check status:')} curl {url}\n")
-
-
-def logs(project_id_arg: str = None):
-    """Stream logs for a project. If no project_id provided, use current directory's settings.json"""
-    
-    # Get project_id
-    if project_id_arg:
-        project_id = project_id_arg
-    else:
-        # Try to read from current directory's settings.json
-        settings_path = Path.cwd() / "settings.json"
-        if not settings_path.exists():
-            print(f"\n  {dim('Error:')} No settings.json in current directory.")
-            print(f"  {dim('Usage:')} concierge logs <project_id>")
-            print(f"  {dim('   or:')} cd into a project directory\n")
-            sys.exit(1)
+            current = instance._get_session_stage(session_id)
+            allowed = instance._transitions.get(current, [])
+            
+            if target_stage not in allowed:
+                return {
+                    "error": f"Cannot transition from '{current}' to '{target_stage}'",
+                    "allowed_transitions": allowed,
+                    "current_stage": current,
+                }
+            
+            instance._set_session_stage(session_id, target_stage)
+            
+            await req_ctx.session.send_notification(
+                types.ServerNotification(types.ToolListChangedNotification()),
+                related_request_id=req_ctx.request_id
+            )
+            
+            is_terminal = instance._is_terminal_stage(target_stage)
+            
+            if is_terminal:
+                stage_instruction = (
+                    "TERMINAL STAGE REACHED. No further transitions available. "
+                    "Execute remaining tools in this stage, then provide your final summary."
+                )
+            else:
+                stage_instruction = (
+                    "STAGE TRANSITIONED. New tools are now available. "
+                    "Continue executing tools and transitioning until you reach the terminal stage."
+                )
+            
+            result = {
+                "status": "transitioned",
+                "from_stage": current,
+                "to_stage": target_stage,
+                "message": f"Successfully transitioned from '{current}' to '{target_stage}'.",
+                "instruction": f"{DEFAULT_WORKFLOW_INSTRUCTIONS}\n\n{stage_instruction}",
+            }
+            
+            return result
         
-        try:
-            settings = json.loads(settings_path.read_text())
-            project_id = settings.get("project_id")
-            if not project_id:
-                print(f"\n  {dim('Error:')} No project_id in settings.json\n")
-                sys.exit(1)
-        except json.JSONDecodeError:
-            print(f"\n  {dim('Error:')} Invalid settings.json\n")
-            sys.exit(1)
+        self._server.tool(
+            name="proceed_to_next_stage",
+            description="Proceed to the next available stage in the workflow, unlocking a new set of tools.",
+        )(_handle_next_stage)
+        
+        # Create the terminate session tool handler
+        async def _handle_terminate_session(ctx: Context = None) -> dict:
+            """Terminate the current workflow session and reset to initial state."""
+            req_ctx = request_ctx.get()
+            session_id = req_ctx.request.headers.get('mcp-session-id')
+            
+            current = instance._get_session_stage(session_id)
+            initial = instance._default_stage
+            
+            if session_id:
+                instance._state.clear_session(session_id)
+            
+            await req_ctx.session.send_notification(
+                types.ServerNotification(types.ToolListChangedNotification()),
+                related_request_id=req_ctx.request_id
+            )
+            
+            return {
+                "status": "terminated",
+                "previous_stage": current,
+                "message": f"Session terminated. Workflow and state reset from '{current}' to initial stage '{initial}'. You can now start a fresh workflow or switch to a different task.",
+            }
+        
+        self._server.tool(
+            name="terminate_session",
+            description="Terminate the current workflow session and reset to the beginning. Call this when: (1) the user wants to start over, (2) the user changes their mind and wants to do something different, (3) the user explicitly asks to stop/cancel/abort, or (4) you have completed the workflow and the user indicates they are done.",
+        )(_handle_terminate_session)
+        
+        original_list_tools = self._server.list_tools
+        
+        async def filtered_list_tools():
+            """Return only tools from the current stage."""
+            ctx = request_ctx.get() 
+            session_id = ctx.request.headers.get('mcp-session-id')
+            
+            current_stage = instance._get_session_stage(session_id)
+            current_stage_tool_names = instance._stages.get(current_stage, [])
+            next_stages = instance._transitions.get(current_stage, [])
+            
+            all_tools = await original_list_tools()
+            
+            visible_tools = []
+            for tool in all_tools:
+                if tool.name in current_stage_tool_names:
+                    tool_copy = tool.model_copy()
+                    tool_copy.description = f"[{current_stage}] {tool.description or ''}"
+                    visible_tools.append(tool_copy)
+            
+            if next_stages:
+                stage_list = ", ".join(f"'{s}'" for s in next_stages)
+                visible_tools.append(MCPTool(
+                    name="proceed_to_next_stage",
+                    description=(
+                        f"Proceed to the next available stage in the workflow. "
+                        f"This will unlock a new set of tools and allow you to continue. "
+                        f"Currently in stage '{current_stage}'. "
+                        f"Available stages to proceed to: {stage_list}."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "title": "StageTransitionRequest",
+                        "description": "Request to transition to a different stage in the workflow.",
+                        "properties": {
+                            "target_stage": {
+                                "type": "string",
+                                "title": "Target Stage",
+                                "description": (
+                                    f"The name of the stage to transition to. "
+                                    f"Must be one of the available stages: {stage_list}."
+                                ),
+                                "enum": next_stages,
+                            }
+                        },
+                        "required": ["target_stage"],
+                        "additionalProperties": False,
+                    },
+                ))
+            
+            visible_tools.append(MCPTool(
+                name="terminate_session",
+                description=(
+                    "Terminate the current workflow session and reset to the beginning. "
+                    "You should typically call this when: (1) the user wants to start over, (2) the user changes their mind and wants to do something different, "
+                    "(3) the user explicitly asks to stop/cancel/abort, or (4) you have completed the workflow and the user indicates they are done."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "title": "TerminateSessionRequest",
+                    "description": "Request to terminate the current workflow session.",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": False,
+                },
+            ))
+            
+            return visible_tools
+        
+        self._server.list_tools = filtered_list_tools
+        self._server._mcp_server.list_tools()(filtered_list_tools)
     
-    # Get credentials
-    creds = load_credentials()
-    if not creds or not creds.get("api_key"):
-        api_key = login()
-    else:
-        api_key = creds["api_key"]
-    
-    print(f"\n  {bold('☁  Streaming logs')} {cyan(project_id)}\n")
-    print(f"  {dim('Press Ctrl+C to stop')}\n")
-    
-    stream_logs(project_id, api_key)
+    def _get_widget_meta(self, w: Widget) -> dict:
+        return {
+            "openai/outputTemplate": w.uri,
+            "openai/widgetAccessible": w.widget_accessible,
+            "openai/toolInvocation/invoking": w.invoking,
+            "openai/toolInvocation/invoked": w.invoked,
+        }
 
+    def _setup_resource_handler(self) -> None:
+        original_list_resources = self._server.list_resources
+        widget_resources = self._pending_resources
 
-def init(name="concierge-app", chatgpt=False):
-    """Scaffold a new MCP server project"""
-    project_dir = Path.cwd() / name
-    
-    if project_dir.exists():
-        print(f"\n  {dim('Error:')} Directory {bold(name)} already exists\n")
-        sys.exit(1)
-    
-    project_id = generate_project_id(name)
-    
-    print(f"\nConcierge CLI {VERSION}")
-    print(f"Scaffolding project {green('✓')}")
-    
-    if chatgpt:
-        # Copy entire chatgpt template
-        templates_dir = get_templates_dir()
-        chatgpt_template = templates_dir / "chatgpt"
-        shutil.copytree(chatgpt_template, project_dir)
-    else:
-        # Basic MCP server
-        project_dir.mkdir()
-        (project_dir / "main.py").write_text(TEMPLATE_MAIN.format(name=name))
-        (project_dir / "README.md").write_text(TEMPLATE_README.format(name=name))
-        (project_dir / "requirements.txt").write_text(TEMPLATE_REQUIREMENTS)
-    
-    # Always write settings.json with unique project_id
-    (project_dir / "settings.json").write_text(get_settings_json(project_id))
-    
-    print(f"> Success! Created {bold(name)}")
-    print(f"\n  {dim('$')} cd {name}")
-    print(f"  {dim('$')} concierge deploy\n")
+        async def _list_all_resources() -> List[types.Resource]:
+            fastmcp_resources = await original_list_resources()
+            return fastmcp_resources + widget_resources
 
+        self._server._mcp_server.list_resources()(_list_all_resources)
 
-def main():
-    args = sys.argv[1:]
-    
-    if not args or args[0] in ("-h", "--help", "help"):
-        print(f"""
-  {bold('☁  Concierge')} {dim('— Structured AI workflows with staged tool execution')}
+    # todo, isoalte the stage transition logic vs the UI/html/widget logic in separate files. 
+    def _get_widget_html(self, widget: Widget) -> str:
+        mode = widget.mode
+        
+        if mode == WidgetMode.HTML:
+            return widget.html
+        
+        if mode == WidgetMode.URL:
+            return IFRAME_TEMPLATE.format(url=widget.url)
+        
+        if mode == WidgetMode.ENTRYPOINT:
+            dist_path = self._assets_dir / "dist" / widget.dist_file
+            if not dist_path.exists():
+                raise FileNotFoundError(
+                    f"Widget {widget.name}: dist/{widget.dist_file} not found. "
+                    f"Run 'npm run build' in {self._assets_dir}"
+                )
+            return dist_path.read_text()
+        
+        if mode == WidgetMode.DYNAMIC:
+            if not hasattr(widget, '_last_args') or widget._last_args is None:
+                raise ValueError(f"Widget {widget.name}: call the tool first")
+            return widget.html_fn(widget._last_args)
+        
+        raise ValueError(f"Unknown widget mode: {mode}")
 
-  {bold('Commands')}
-    {cyan('init')} [name]              Create a new MCP server project
-    {cyan('init')} --chatgpt [name]    Create a ChatGPT widget app
-    {cyan('deploy')} [path]             Deploy project
-    {cyan('deploy')} --logs [path]      Deploy and stream logs
-    {cyan('logs')} [project_id]        Stream logs (uses current dir if no id)
-    {cyan('login')}                    Authenticate with Concierge
-    {cyan('logout')}                   Clear stored credentials
+    def _setup_read_resource_handler(self) -> None:
+        widgets_by_uri = {w.uri: w for w in self._widgets}
+        get_html = self._get_widget_html
 
-  {bold('Quick Start')}
-    concierge init
-    cd concierge-app
-    concierge deploy
-""")
-        return
-    
-    cmd = args[0]
-    
-    if cmd == "init":
-        chatgpt = "--chatgpt" in args
-        remaining = [a for a in args[1:] if not a.startswith("--")]
-        name = remaining[0] if remaining else "concierge-app"
-        init(name, chatgpt=chatgpt)
-    elif cmd == "login":
-        login()
-    elif cmd == "deploy":
-        show_logs = "--logs" in args
-        remaining = [a for a in args[1:] if a != "--logs"]
-        path = remaining[0] if remaining else "."
-        result = deploy(path)
-        if show_logs and result:
-            stream_logs(*result)
-    elif cmd == "logs":
-        project_id_arg = args[1] if len(args) > 1 else None
-        logs(project_id_arg)
-    elif cmd == "logout":
-        logout()
-    else:
-        print(f"\n  Unknown command: {cmd}\n")
-        sys.exit(1)
+        original_handler = self._server._mcp_server.request_handlers.get(
+            types.ReadResourceRequest
+        )
 
+        async def _read_resource_with_meta(
+            req: types.ReadResourceRequest,
+        ) -> types.ServerResult:
+            uri_str = str(req.params.uri)
+            widget = widgets_by_uri.get(uri_str)
 
-if __name__ == "__main__":
-    main()
+            if widget:
+                text = get_html(widget)
+                contents = [
+                    types.TextResourceContents(
+                        uri=widget.uri,
+                        mimeType=widget.mime_type,
+                        text=text,
+                        _meta=self._get_widget_meta(widget),
+                    )
+                ]
+                return types.ServerResult(types.ReadResourceResult(contents=contents))
+
+            if original_handler:
+                return await original_handler(req)
+
+            raise ValueError(f"Unknown resource: {uri_str}")
+
+        self._server._mcp_server.request_handlers[
+            types.ReadResourceRequest
+        ] = _read_resource_with_meta
+
+    def _run_widget_builds(self):
+        needs_build = any(w.mode == WidgetMode.ENTRYPOINT for w in self._widgets)
+        if not needs_build:
+            return
+        
+        package_json = self._assets_dir / "package.json"
+        if not package_json.exists():
+            raise FileNotFoundError(
+                f"{self._assets_dir}/package.json not found. "
+                f"Widgets using entrypoint mode require a build system."
+            )
+        
+        print("Installing web dependencies...", flush=True)
+        result = subprocess.run(
+            ["npm", "install"],
+            cwd=str(self._assets_dir),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"npm install failed:\n{result.stderr}")
+        
+        print("Building widgets...", flush=True)
+        result = subprocess.run(
+            ["npm", "run", "build"],
+            cwd=str(self._assets_dir),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"Build failed:\n{result.stdout}\n{result.stderr}")
+        print("Build complete", flush=True)
+
+    def _finalize(self):
+        """Setup all handlers. Called before run() or streamable_http_app()."""
+        if getattr(self, "_finalized", False):
+            return
+        self._finalized = True
+
+        self._run_widget_builds()
+
+        tools = self._server._tool_manager.list_tools()
+        self._provider.index_tools(tools)
+
+        served_tools = self._provider.serve_tools()
+        self._server._tool_manager._tools = {t.name: t for t in served_tools}
+
+        self._setup_resource_handler()
+        self._setup_read_resource_handler()
+        self._setup_staged_tools() 
+        self._setup_metrics()
+
+    def _setup_metrics(self):
+        if not METRICS_ENABLED:
+            return
+        handlers = self._server._mcp_server.request_handlers
+
+        if types.CallToolRequest in handlers:
+            original = handlers[types.CallToolRequest]
+            async def wrapped_call(req: types.CallToolRequest) -> types.ServerResult:
+                metrics.ensure_started()
+                start = time.perf_counter()
+                is_error, error_msg = False, None
+                try:
+                    return await original(req)
+                except Exception as e:
+                    is_error, error_msg = True, str(e)
+                    raise
+                finally:
+                    metrics.track("mcp:tools/call", resource_name=req.params.name,
+                                  duration_ms=int((time.perf_counter() - start) * 1000),
+                                  is_error=is_error, error_message=error_msg)
+            handlers[types.CallToolRequest] = wrapped_call
+
+        if types.ReadResourceRequest in handlers:
+            original_read = handlers[types.ReadResourceRequest]
+            async def wrapped_read(req: types.ReadResourceRequest) -> types.ServerResult:
+                metrics.ensure_started()
+                start = time.perf_counter()
+                is_error, error_msg = False, None
+                try:
+                    return await original_read(req)
+                except Exception as e:
+                    is_error, error_msg = True, str(e)
+                    raise
+                finally:
+                    metrics.track("mcp:resources/read", resource_name=str(req.params.uri),
+                                  duration_ms=int((time.perf_counter() - start) * 1000),
+                                  is_error=is_error, error_message=error_msg)
+            handlers[types.ReadResourceRequest] = wrapped_read
+
+    def run(self, *args, **kwargs):
+        self._finalize()
+        metrics.start()
+        return self._server.run(*args, **kwargs)
+
+    def streamable_http_app(self):
+        self._finalize()
+        metrics.start()
+        return self._server.streamable_http_app()
+
+    def widget(
+        self,
+        uri: str,
+        # Mode 1: Inline HTML
+        html: Optional[str] = None,
+        # Mode 2: External URL  
+        url: Optional[str] = None,
+        # Mode 3: Entrypoint (filename in entrypoints/)
+        entrypoint: Optional[str] = None,
+        # Mode 4: Dynamic function (takes args dict, returns HTML string)
+        html_fn: Optional[Callable[[dict], str]] = None,
+        # Metadata
+        name: Optional[str] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        invoking: str = "Loading...",
+        invoked: str = "Done",
+        annotations: Optional[dict] = None,
+    ) -> Callable:
+
+        def decorator(fn: Callable) -> Callable:
+            w = Widget(
+                uri=uri,
+                html=html,
+                url=url,
+                entrypoint=entrypoint,
+                html_fn=html_fn,
+                name=name or fn.__name__,
+                title=title,
+                description=description or fn.__doc__,
+                invoking=invoking,
+                invoked=invoked,
+                annotations=annotations,
+            )
+            self._widgets.append(w)
+            self._pending_resources.append(
+                types.Resource(
+                    uri=w.uri,
+                    name=w.name,
+                    title=w.title,
+                    description=w.description,
+                    mimeType=w.mime_type,
+                    _meta=self._get_widget_meta(w),
+                )
+            )
+
+            @wraps(fn)
+            async def wrapped(*args, **kwargs) -> types.CallToolResult:
+                result = await fn(*args, **kwargs)
+                
+                if w.html_fn:
+                    w._last_args = result
+                
+                return types.CallToolResult(
+                    content=[types.TextContent(type="text", text=w.invoked)],
+                    structuredContent=result,
+                    _meta={
+                        "openai/toolInvocation/invoking": w.invoking,
+                        "openai/toolInvocation/invoked": w.invoked,
+                    },
+                )
+
+            self._server.tool(
+                name=w.name,
+                title=w.title,
+                description=w.description,
+                annotations=w.annotations,
+                meta={
+                    "openai/outputTemplate": w.uri,
+                    "openai/widgetAccessible": w.widget_accessible,
+                    "openai/toolInvocation/invoking": w.invoking,
+                    "openai/toolInvocation/invoked": w.invoked,
+                },
+            )(wrapped)
+
+            return fn
+
+        return decorator
+
+    def __getattr__(self, name):
+        return getattr(self._server, name)

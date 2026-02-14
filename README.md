@@ -1,146 +1,163 @@
-<p align="center">
-  <img
-    src="https://raw.githubusercontent.com/concierge-hq/concierge/main/assets/logo.svg"
-    alt="Concierge"
-    width="90%"
-  />
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="https://github.com/concierge-hq/concierge-sdk" target="_blank">
-    <img src="https://img.shields.io/badge/GitHub-concierge--sdk-8B5CF6?style=flat&logo=github&logoColor=white&labelColor=000000" alt="GitHub"/>
-  </a>
-  &nbsp;
-  <a href="https://discord.gg/bfT3VkhF" target="_blank">
-    <img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=flat&logo=discord&logoColor=white&labelColor=000000" alt="Discord"/>
-  </a>
-  &nbsp;
-  <a href="https://calendly.com/arnavbalyan1/new-meeting" target="_blank">
-    <img src="https://img.shields.io/badge/Book_Demo-Calendly-00A2FF?style=flat&logo=calendly&logoColor=white&labelColor=000000" alt="Book Demo"/>
-  </a>
-  &nbsp;
-  <a href="https://calendar.google.com/calendar/u/0?cid=MWRiNjA2YjEzODU5MjM4MGE0ZWU1ODJkZTc1ZDhhOGUxMmZiNWYzM2FkNTYwMDdhNTg5ODUzNDU5OWM1MWM0YkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t" target="_blank">
-    <img src="https://img.shields.io/badge/Community_Sync-Calendar-34A853?style=flat&logo=googlecalendar&logoColor=white&labelColor=000000" alt="Community Sync"/>
-  </a>
-</p>
-<p align="center">
-  <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat&labelColor=000000" alt="Build Status"/>
-  &nbsp;
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat&labelColor=000000" alt="License"/>
-  &nbsp;
-  <img src="https://img.shields.io/badge/python-3.9+-8B5CF6?style=flat&logo=python&logoColor=white&labelColor=000000" alt="Python"/>
-</p>
+<!-- omit in toc -->
 
-<p align="center"><b>Build MCP workflows that progressively discover tools, with state management, semantic search, and more.</b></p>
+<picture>
+  <img width="900" alt="Concierge Banner" src="assets/concierge-banner.png" />
+</picture>
 
-Concierge is a library for building stateful agentic apps. Using protocols like MCP as the transport layer, Concierge provides primitives like: *stages*, *transitions*, and *state*. You can define invocation order and guardrails so agents reliably navigate, interact, and transact with your services. 
-Ensuring your agent cannot call tools like `checkout()` before calling `add_to_cart()`.
+# Concierge AI 🚀
 
-<p align="center">
-  <img src="assets/token_usage.png" alt="Token Usage" width="48%"/>
-  <img src="assets/error_rate.png" alt="Error Rate" width="48%"/>
-</p>
+<strong>The fabric for reliable MCP servers and AI applications.</strong>
 
-<p align="center"><i>Concierge apps reduce token usage by 78% and error rates by 65% compared to flat tool lists</i></p>
+[![Docs](https://img.shields.io/badge/docs-getconcierge.app-blue)](https://docs.getconcierge.app)
+[![Discord](https://img.shields.io/badge/community-discord-5865F2?logo=discord&logoColor=white)](https://discord.gg/bfT3VkhF)
+[![PyPI - Version](https://img.shields.io/pypi/v/concierge-sdk.svg)](https://pypi.org/project/concierge-sdk)
+[![Python](https://img.shields.io/badge/python-3.9+-8B5CF6?logo=python&logoColor=white)](https://pypi.org/project/concierge-sdk)
 
+</div>
 
-## Quick Start
+The [Model Context Protocol](https://modelcontextprotocol.io) (MCP) is a standardized way to connect AI agents to tools. Instead of exposing a flat list of every tool on every request, Concierge progressively discloses only what's relevant. Concierge guarantees deterministic results and reliable tool invocation.
+
+## Getting Started
+
+> [!NOTE]
+> Concierge requires Python 3.9+. We recommend installing with [uv](https://docs.astral.sh/uv/) for faster dependency resolution, but pip works just as well.
 
 ```bash
-pip install concierge-sdk    # Install the SDK
-concierge init my-store      # Scaffold a new project
-cd my-store                  # Enter the project
-python main.py               # Start the server
+pip install concierge-sdk
 ```
 
-**Or convert an existing MCP server:**
+**Scaffold a new project:**
+
+```bash
+concierge init my-store    # Generate a ready to run project
+cd my-store                # Enter project
+python main.py             # Start the MCP server
+```
+
+**Or wrap an existing MCP server** two lines, nothing else changes:
 
 ```python
 # Before
 from mcp.server.fastmcp import FastMCP
 app = FastMCP("my-server")
 
-# After
+# After: just wrap it
 from concierge import Concierge
 app = Concierge(FastMCP("my-server"))
 ```
 
-Your `@app.tool()` and other decorators are unchanged. But you get superpowers.
+> [!TIP]
+> Concierge works at the MCP protocol level. It dynamically changes which tools are returned by `tools/list` based on the current workflow step. The agent and client don't need to know Concierge exists, they just see fewer, more relevant tools at each point.
 
-## Why Concierge?
-
-When you expose tools as a flat list, agents can invoke them in any order, semantic loss creeps in as tool count grows, and context windows fill rapidly.
-
-Concierge provides several primitives that you can annotate your tools to convert them into structured workflows that an agent can reliably navigate and interact with:
-
-- **Stages**: Group of several tools, expose only what's relevant.
-- **Transitions**: Define legal paths to the next stage that an agent can transition to.  
-- **State**: Shared distributed memory available on a stage local and a global workflow level.
-
-Declare your workflow. Concierge enforces it.
-
-<br>
-<p align="center">
-  <img src="assets/concierge_example.svg" alt="Concierge Workflow" width="87%"/>
-</p>
-<br>
-
-## Core Concepts
-
-### **Tools**
-
-Tools are your business logic. Define them exactly like FastMCP:
+<br />
 
 ```python
-@app.tool()
-def add_to_cart(product_id: str, quantity: int) -> dict:
-    """Add a product to the shopping cart."""
-    cart = app.get_state("cart", [])
-    cart.append({"product_id": product_id, "quantity": quantity})
-    app.set_state("cart", cart)
-    return {"success": True, "cart_size": len(cart)}
+from concierge import Concierge
+from mcp.server.fastmcp import FastMCP
+
+app = Concierge(FastMCP("my-server"))
+
+# Your @app.tool() decorators stay exactly the same.
+# You can additionally add app.stages and app.transitions.
 ```
 
-### **Stages**
+> [!NOTE]
+> The wrap and go gives you progressive tool disclosure immediately. Add `app.stages` and `app.transitions` when you want full workflow control, no code changes required.
 
-A stage groups related tools that should be available together. Only tools within the current stage are visible to the agent.
+<br />
+
+## Usage
+
+### Group tools into steps
+
+Instead of exposing everything at once, group related tools together. Only the current step's tools are visible to the agent:
 
 ```python
 app.stages = {
-    "browse": ["search_products", "view_product"],
-    "cart": ["add_to_cart", "remove_from_cart", "view_cart"],
+    "browse":   ["search_products", "view_product"],
+    "cart":     ["add_to_cart", "remove_from_cart", "view_cart"],
     "checkout": ["apply_coupon", "complete_purchase"],
 }
 ```
 
-### **Transitions**
+### Define transitions
 
-Transitions define legal moves between stages. Enforce certain stages or guarentee tool invocation order:
+Control which steps can follow which. The agent moves forward (or backward) only along paths you allow:
 
 ```python
 app.transitions = {
-    "browse": ["cart"],              # Can only go to cart
-    "cart": ["browse", "checkout"],  # Can go back or proceed
-    "checkout": [],                  # Terminal stage
+    "browse":   ["cart"],               # Can only move to cart
+    "cart":     ["browse", "checkout"], # Can go back or proceed
+    "checkout": [],                     # Terminal step
 }
 ```
 
-### **State**
+<details>
+<summary><b>Share state between steps</b></summary>
+<br>
 
-State can be scoped to a stage or available globally across a session. For stateful servers, state is atomic and consistent across distributed replicas. Each session is isolated:
+Pass data between workflow steps without round-tripping through the LLM. State is session-scoped and works across distributed replicas:
 
 ```python
-# Set state (scoped to current session)
-app.set_state("cart", [{"product_id": "123", "quantity": 2}])
-app.set_state("user.email", "user@example.com")
+# In the "browse" step - save a selection
+app.set_state("selected_product", {"id": "p1", "name": "Laptop"})
 
-# Get state
-cart = app.get_state("cart", [])
-email = app.get_state("user.email")
+# In the "cart" step retrieve it directly
+product = app.get_state("selected_product")
+```
+</details>
+
+<details>
+<summary><b>Scale with semantic search</b></summary>
+<br>
+
+When you have hundreds of tools, enable semantic search to collapse your entire API behind two meta-tools:
+
+```python
+from concierge import Concierge, Config, ProviderType
+
+app = Concierge("large-api", config=Config(
+    provider_type=ProviderType.SEARCH,
+    max_results=5,
+))
 ```
 
+No matter how many tools you register, the agent only ever sees:
 
-## Example
+```
+search_tools(query: str)              → Find tools by description
+call_tool(tool_name: str, args: dict) → Execute a discovered tool
+```
+</details>
+
+### Run over HTTP
+
+Concierge supports multiple transports. Use streamable HTTP for web deployments:
+
+```python
+# Streamable HTTP (recommended for web)
+http_app = app.streamable_http_app()
+
+# Or run over stdio (default, for CLI-based clients)
+app.run()
+```
+
+> [!TIP]
+> All of the above: stages, transitions, state, semantic search are optional and independent. Use any combination. Start simple and add structure as your workflow grows.
+
+## Features
+| | |
+|:--|:--|
+| **Progressive Disclosure**: Only expose the tools that matter right now. Fewer tools in context means less confusion and lower cost. | **Enforced Tool Ordering**: Define which tools unlock which. The agent follows your business logic, not its own guesses. |
+| **Shared State**: Pass data between workflow steps server-side. No tool-call chaining through the LLM, no re-injecting data into prompts. | **Semantic Search**: For large APIs (100+ tools), collapse everything behind two meta-tools. The agent searches by description, then invokes. |
+| **Protocol Compatible**: Wraps any MCP server. Your existing `@app.tool()` decorators, resources, and prompts work unchanged. | **Session Isolation**: Each conversation gets its own workflow state. Atomic, consistent, works across distributed replicas. |
+| **Multiple Transports**: Run over stdio, streamable HTTP, or SSE. Deploy anywhere: serverless, containers, bare metal. | **Scaffolding CLI**: `concierge init` generates a ready to run project with tools, stages, and transitions wired up ready to go. |
+
+## Example Concierge Application
+
+A complete e-commerce workflow in under 30 lines:
 
 ```python
 from concierge import Concierge
@@ -149,10 +166,12 @@ app = Concierge("shopping")
 
 @app.tool()
 def search_products(query: str) -> dict:
+    """Search the product catalog."""
     return {"products": [{"id": "p1", "name": "Laptop", "price": 999}]}
 
 @app.tool()
 def add_to_cart(product_id: str) -> dict:
+    """Add a product to the cart."""
     cart = app.get_state("cart", [])
     cart.append(product_id)
     app.set_state("cart", cart)
@@ -160,7 +179,9 @@ def add_to_cart(product_id: str) -> dict:
 
 @app.tool()
 def checkout(payment_method: str) -> dict:
-    return {"order_id": "ORD-123", "status": "confirmed"}
+    """Complete the purchase."""
+    cart = app.get_state("cart", [])
+    return {"order_id": "ORD-123", "items": len(cart), "status": "confirmed"}
 
 app.stages = {
     "browse": ["search_products"],
@@ -173,69 +194,26 @@ app.transitions = {
     "cart": ["browse", "checkout"],
     "checkout": [],
 }
+
+app.run()  # Start over stdio
 ```
 
-## Semantic Tool Search
+The agent starts at `browse`. It can move to `cart`, then to `checkout`. It cannot call `checkout` from `browse`. Concierge enforces this at the protocol level, no prompt engineering required.
+<br />
 
-When you have 100+ tools, even staged workflows aren't enough. Enable semantic search to collapse all tools into just two (search and invoke):
+## Documentation
 
-```python
-from concierge import Concierge, Config, ProviderType
+Full guides, API reference, and deployment patterns are available at **[docs.getconcierge.app](https://docs.getconcierge.app)**.
+<br />
 
-app = Concierge("large-api", config=Config(
-    provider_type=ProviderType.SEARCH,
-    max_results=5
-))
+## Community
 
-# Register hundreds of tools...
-@app.tool()
-def search_users(query: str): ...
-@app.tool()
-def get_user_by_id(user_id: int): ...
-# ... hundreds more
-```
+- **[Discord](https://discord.gg/bfT3VkhF)**: Ask questions, share what you're building, get help.
+- **[Issues](https://github.com/concierge-hq/concierge/issues)**: Report bugs or request features.
+- **[Discussions](https://github.com/concierge-hq/concierge/discussions)**: Longer form discussions and RFCs.
 
-**What the agent sees:**
+---
 
-```
-search_tools(query: str)              → Find tools by description
-call_tool(tool_name: str, args: dict) → Execute a discovered tool
-```
-
-## API Reference
-
-```python
-from concierge import Concierge, Config, ProviderType
-
-# Initialize
-app = Concierge("name", config=Config(
-    provider_type=ProviderType.PLAIN,  # or SEARCH
-    max_results=5,
-))
-
-# Tools
-@app.tool()
-def my_tool(): ...
-
-# State
-app.get_state(key, default=None)
-app.set_state(key, value)
-
-# Workflow
-app.stages = {"stage": ["tool1", "tool2"]}
-app.transitions = {"stage": ["next_stage"]}
-app.enforce_completion = True
-
-# Run
-app.run()                      # stdio
-app.streamable_http_app()      # HTTP
-```
-
-
-**We are building the agentic web. Come join us.**
-
-Interested in contributing or building with Concierge? [Reach out](mailto:arnavbalyan1@gmail.com).
-
-## Contributing
-
-Contributions are welcome. Please open an issue or submit a pull request.
+<p align="left">
+  We are building the agentic web. Come <a href="mailto:arnav@getconcierge.app">join us</a>.
+</p>

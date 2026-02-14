@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "concierge-sdk"
-version = "0.3.0"
+version = "0.4.0"
 description = "Deploy production grade MCP apps in seconds"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 dependencies = [
     "mcp>=1.0.0",
     "httpx>=0.25.0",
@@ -17,12 +17,15 @@ all = [
     "sentence-transformers>=2.0.0",
     "numpy>=1.24.0",
 ]
+postgres = [
+    "psycopg2-binary>=2.9.0",
+]
 
 [project.scripts]
 concierge = "concierge_cli:main"
 
 [tool.setuptools]
-packages = ["concierge", "concierge.backends", "concierge.core", "concierge_cli"]
+packages = ["concierge", "concierge.backends", "concierge.core", "concierge.adapters", "concierge.state", "concierge_cli"]
 package-dir = {"concierge" = ".", "concierge_cli" = "./concierge_cli"}
 include-package-data = true
 

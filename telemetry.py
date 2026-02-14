@@ -2,15 +2,17 @@
 Concierge Metrics - Optional telemetry for deployed MCP servers
 Enabled via CONCIERGE_PROJECT_ID and CONCIERGE_AUTH_TOKEN env vars
 """
+from __future__ import annotations
+
 import os
 import asyncio
 from dataclasses import dataclass, asdict
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from collections import deque
+from typing import Optional
 
 import httpx
 
-# Config from env vars
 PROJECT_ID = os.getenv("CONCIERGE_PROJECT_ID")
 AUTH_TOKEN = os.getenv("CONCIERGE_AUTH_TOKEN")
 API_URL = os.getenv("CONCIERGE_API_URL", "https://getconcierge.app")
@@ -22,21 +24,21 @@ class MCPEvent:
     project_id: str
     session_id: str
     event_type: str
-    resource_name: str | None = None
-    duration_ms: int | None = None
+    resource_name: Optional[str] = None
+    duration_ms: Optional[int] = None
     is_error: bool = False
-    error_message: str | None = None
+    error_message: Optional[str] = None
     timestamp: str = ""
 
     def __post_init__(self):
         if not self.timestamp:
-            self.timestamp = datetime.now(UTC).isoformat()
+            self.timestamp = datetime.now(timezone.utc).isoformat()
 
 
 class ConciergeMetrics:
     def __init__(self):
-        self.queue: deque[MCPEvent] = deque(maxlen=1000)
-        self._task: asyncio.Task | None = None
+        self.queue: "deque[MCPEvent]" = deque(maxlen=1000)
+        self._task: Optional[asyncio.Task] = None
         self._running = False
 
     def track(self, event_type: str, **kwargs) -> None:
@@ -63,7 +65,7 @@ class ConciergeMetrics:
                     headers={"Authorization": f"Bearer {AUTH_TOKEN}"}
                 )
         except Exception:
-            pass  # Best effort - drop on failure
+            pass  # Best effort, drop on failure
 
     async def _loop(self) -> None:
         while self._running:
@@ -81,7 +83,6 @@ class ConciergeMetrics:
             loop = asyncio.get_running_loop()
             self._task = loop.create_task(self._loop())
         except RuntimeError:
-            # No running loop yet - will be started on first request
             pass
     
     def ensure_started(self) -> None:
@@ -102,6 +103,5 @@ class ConciergeMetrics:
         await self.flush()
 
 
-# Singleton
 metrics = ConciergeMetrics()
 
