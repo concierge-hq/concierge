@@ -208,9 +208,9 @@ Full guides, API reference, and deployment patterns are available at **[docs.get
 
 ## Community
 
-- **[Discord](https://discord.gg/bfT3VkhF)**: Ask questions, share what you're building, get help.
-- **[Issues](https://github.com/concierge-hq/concierge/issues)**: Report bugs or request features.
-- **[Discussions](https://github.com/concierge-hq/concierge/discussions)**: Longer form discussions and RFCs.
+- [Discord](https://discord.gg/bfT3VkhF): Ask questions, share what you're building, get help.
+- [Issues](https://github.com/concierge-hq/concierge/issues): Report bugs or request features.
+- [Discussions](https://github.com/concierge-hq/concierge/discussions): Longer form discussions and RFCs.
 
 ---
 
