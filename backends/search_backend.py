@@ -1,6 +1,4 @@
 import numpy as np
-from typing import Annotated
-from pydantic import Field
 from sentence_transformers import SentenceTransformer
 from mcp.types import Tool as MCPTool
 from concierge.backends.base_provider import BaseProvider
@@ -17,6 +15,7 @@ def to_mcp_tool(tool) -> dict:
         icons=tool.icons,
         _meta=tool.meta,
     ).model_dump(exclude_none=True)
+
 
 DEFAULT_MODEL = SentenceTransformer("BAAI/bge-large-en-v1.5")
 
@@ -63,7 +62,6 @@ def build_search_text(tool) -> str:
 
 
 class SearchBackend(BaseProvider):
-
     def initialize(self, config):
         self._max_results = config.max_results
         self._tools = []
@@ -101,7 +99,7 @@ class SearchBackend(BaseProvider):
         async def call_tool(tool_name: str, arguments: dict):
             tool = next((t for t in tools_ref if t.name == tool_name), None)
             if not tool:
-                return {"error": f\"Tool '{tool_name}' not found.\"}
+                return {"error": f"Tool '{tool_name}' not found."}
             return await tool.run(arguments)
 
         search_params = {
@@ -110,7 +108,11 @@ class SearchBackend(BaseProvider):
                 "query": {
                     "type": "string",
                     "description": "Natural language description of what you want to do. Returns relevant tools you can call with call_tool.",
-                    "examples": ["find user by email", "process payment refund", "lookup order status"],
+                    "examples": [
+                        "find user by email",
+                        "process payment refund",
+                        "lookup order status",
+                    ],
                 }
             },
             "required": ["query"],

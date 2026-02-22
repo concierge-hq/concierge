@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class BaseProvider(ABC):
-
     @abstractmethod
     def initialize(self, config):
         """Initialize provider with config."""
@@ -17,4 +16,3 @@ class BaseProvider(ABC):
     def serve_tools(self):
         """Return tool functions to expose on the MCP server."""
         pass
-

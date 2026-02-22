@@ -2,7 +2,6 @@ from concierge.backends.base_provider import BaseProvider
 
 
 class VanillaBackend(BaseProvider):
-
     def initialize(self, config):
         self._tools = []
 
@@ -11,4 +10,3 @@ class VanillaBackend(BaseProvider):
 
     def serve_tools(self):
         return self._tools
-

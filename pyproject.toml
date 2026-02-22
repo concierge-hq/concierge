@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "concierge-sdk"
 version = "0.4.0"
 description = "Deploy production grade MCP apps in seconds"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.0.0",
     "httpx>=0.25.0",
