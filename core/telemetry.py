@@ -2,6 +2,7 @@
 Concierge Metrics - Optional telemetry for deployed MCP servers
 Enabled via CONCIERGE_PROJECT_ID and CONCIERGE_AUTH_TOKEN env vars
 """
+
 from __future__ import annotations
 
 import os
@@ -44,12 +45,14 @@ class ConciergeMetrics:
     def track(self, event_type: str, **kwargs) -> None:
         if not ENABLED:
             return
-        self.queue.append(MCPEvent(
-            project_id=PROJECT_ID,
-            session_id=kwargs.pop("session_id", "unknown"),
-            event_type=event_type,
-            **kwargs
-        ))
+        self.queue.append(
+            MCPEvent(
+                project_id=PROJECT_ID,
+                session_id=kwargs.pop("session_id", "unknown"),
+                event_type=event_type,
+                **kwargs,
+            )
+        )
 
     async def flush(self) -> None:
         if not ENABLED or not self.queue:
@@ -62,7 +65,7 @@ class ConciergeMetrics:
                 await client.post(
                     f"{API_URL}/analytics/events",
                     json={"events": events},
-                    headers={"Authorization": f"Bearer {AUTH_TOKEN}"}
+                    headers={"Authorization": f"Bearer {AUTH_TOKEN}"},
                 )
         except Exception:
             pass  # Best effort, drop on failure
@@ -84,7 +87,7 @@ class ConciergeMetrics:
             self._task = loop.create_task(self._loop())
         except RuntimeError:
             pass
-    
+
     def ensure_started(self) -> None:
         """Called from request handlers to ensure background task is running."""
         if not ENABLED or self._task is not None:
@@ -104,4 +107,3 @@ class ConciergeMetrics:
 
 
 metrics = ConciergeMetrics()
-

@@ -5,6 +5,7 @@ Provides a unified interface for different MCP server implementations:
 - FastMCP (default, full-featured)
 - Raw mcp.server.Server (bare-metal)
 """
+
 from __future__ import annotations
 
 from concierge.adapters.base import ServerAdapter
