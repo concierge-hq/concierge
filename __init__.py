@@ -16,7 +16,7 @@ from mcp.server.fastmcp.server import Context
 
 from concierge.backends.vanilla_backend import VanillaBackend
 from concierge.core.widget import Widget, WidgetMode
-from concierge.telemetry import metrics, ENABLED as METRICS_ENABLED
+from concierge.core.telemetry import metrics, ENABLED as METRICS_ENABLED
 from concierge.adapters.raw_server_adapter import RawServerAdapter
 from concierge.state import get_default_backend
 from concierge.state.base import StateBackend
