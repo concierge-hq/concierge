@@ -1,0 +1,91 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  update-changelog:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Update CHANGELOG.md
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 <<'EOF'
+          import os
+
+          title  = os.environ["PR_TITLE"]
+          number = os.environ["PR_NUMBER"]
+          labels = [l.strip().lower() for l in os.environ.get("PR_LABELS", "").split(",") if l.strip()]
+          author = os.environ["PR_AUTHOR"]
+          repo   = os.environ["REPO"]
+
+          LABEL_MAP = {
+              "Added":         ["feature", "enhancement"],
+              "Fixed":         ["bug", "fix", "bugfix"],
+              "Changed":       ["refactor", "improvement"],
+              "Documentation": ["docs", "documentation"],
+              "Breaking":      ["breaking", "breaking-change"],
+          }
+
+          category = None
+          for cat, keywords in LABEL_MAP.items():
+              if any(k in labels for k in keywords):
+                  category = cat
+                  break
+
+          if category is None:
+              prefix = title.split(":")[0].strip().lower() if ":" in title else ""
+              if prefix.startswith(("fix", "bug")):
+                  category = "Fixed"
+              elif prefix.startswith(("feat", "add")):
+                  category = "Added"
+              elif prefix.startswith(("doc",)):
+                  category = "Documentation"
+              elif prefix.startswith(("refactor",)):
+                  category = "Changed"
+              else:
+                  category = "Changed"
+
+          entry = f"- [#{number}](https://github.com/{repo}/pull/{number}) {title} (@{author})"
+
+          with open("CHANGELOG.md", "r") as f:
+              content = f.read()
+
+          marker = "## [Unreleased]"
+          heading = f"### {category}"
+
+          if heading in content:
+              content = content.replace(heading, f"{heading}\n{entry}", 1)
+          else:
+              content = content.replace(marker, f"{marker}\n\n{heading}\n{entry}", 1)
+
+          with open("CHANGELOG.md", "w") as f:
+              f.write(content)
+          EOF
+
+      - name: Commit and push
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          git config user.name "concierge-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --staged --quiet && exit 0
+          git commit -m "docs(changelog): #${PR_NUMBER} ${PR_TITLE}"
+          git push
