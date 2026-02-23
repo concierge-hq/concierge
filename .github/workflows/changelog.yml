@@ -7,32 +7,46 @@ on:
 
 jobs:
   update-changelog:
-    if: github.event.pull_request.merged == true
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.user.login != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Update CHANGELOG.md
+      - name: Regenerate unreleased changelog
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
           python3 <<'EOF'
-          import os
+          import json, os, subprocess
 
-          title  = os.environ["PR_TITLE"]
-          number = os.environ["PR_NUMBER"]
-          labels = [l.strip().lower() for l in os.environ.get("PR_LABELS", "").split(",") if l.strip()]
-          author = os.environ["PR_AUTHOR"]
-          repo   = os.environ["REPO"]
+          repo = os.environ["REPO"]
+
+          result = subprocess.run(
+              ["gh", "api", f"repos/{repo}/releases/latest", "--jq", ".published_at"],
+              capture_output=True, text=True
+          )
+          since = result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else ""
+
+          query = f"repo:{repo} is:pr is:merged base:main"
+          if since:
+              query += f" merged:>{since}"
+
+          result = subprocess.run(
+              ["gh", "pr", "list", "--search", query, "--json", "number,title,labels,author", "--limit", "200"],
+              capture_output=True, text=True
+          )
+          prs = json.loads(result.stdout) if result.stdout.strip() else []
+
+          prs = [pr for pr in prs if pr.get("author", {}).get("login") != "github-actions[bot]"]
 
           LABEL_MAP = {
               "Added":         ["feature", "enhancement"],
@@ -42,50 +56,95 @@ jobs:
               "Breaking":      ["breaking", "breaking-change"],
           }
 
-          category = None
-          for cat, keywords in LABEL_MAP.items():
-              if any(k in labels for k in keywords):
-                  category = cat
-                  break
+          categorized = {}
+          for pr in prs:
+              labels = [l["name"].lower() for l in pr.get("labels", [])]
+              title = pr["title"]
+              number = pr["number"]
+              author = pr.get("author", {}).get("login", "unknown")
 
-          if category is None:
-              prefix = title.split(":")[0].strip().lower() if ":" in title else ""
-              if prefix.startswith(("fix", "bug")):
-                  category = "Fixed"
-              elif prefix.startswith(("feat", "add")):
-                  category = "Added"
-              elif prefix.startswith(("doc",)):
-                  category = "Documentation"
-              elif prefix.startswith(("refactor",)):
-                  category = "Changed"
-              else:
-                  category = "Changed"
+              category = None
+              for cat, keywords in LABEL_MAP.items():
+                  if any(k in labels for k in keywords):
+                      category = cat
+                      break
 
-          entry = f"- [#{number}](https://github.com/{repo}/pull/{number}) {title} (@{author})"
+              if category is None:
+                  prefix = title.split(":")[0].strip().lower() if ":" in title else ""
+                  if prefix.startswith(("fix", "bug")):
+                      category = "Fixed"
+                  elif prefix.startswith(("feat", "add")):
+                      category = "Added"
+                  elif prefix.startswith(("doc",)):
+                      category = "Documentation"
+                  elif prefix.startswith(("refactor",)):
+                      category = "Changed"
+                  else:
+                      category = "Changed"
+
+              categorized.setdefault(category, []).append(
+                  f"- [#{number}](https://github.com/{repo}/pull/{number}) {title} (@{author})"
+              )
+
+          order = ["Breaking", "Added", "Changed", "Fixed", "Documentation"]
+          sections = []
+          for cat in order:
+              if cat in categorized:
+                  sections.append(f"### {cat}")
+                  sections.extend(categorized[cat])
+                  sections.append("")
+
+          header = (
+              "# Changelog\n\n"
+              "All notable changes to Concierge will be documented in this file.\n\n"
+              "The format is based on [Keep a Changelog](https://keepachangelog.com/),\n"
+              "and this project adheres to [Semantic Versioning](https://semver.org/).\n\n"
+              "## [Unreleased]\n"
+          )
 
           with open("CHANGELOG.md", "r") as f:
-              content = f.read()
+              existing = f.read()
 
-          marker = "## [Unreleased]"
-          heading = f"### {category}"
+          released = ""
+          for marker in ["## [0", "## [1", "## [2", "## [v"]:
+              idx = existing.find(marker)
+              if idx != -1:
+                  released = "\n" + existing[idx:]
+                  break
 
-          if heading in content:
-              content = content.replace(heading, f"{heading}\n{entry}", 1)
-          else:
-              content = content.replace(marker, f"{marker}\n\n{heading}\n{entry}", 1)
+          body = header
+          if sections:
+              body += "\n" + "\n".join(sections) + "\n"
+          body += released
 
           with open("CHANGELOG.md", "w") as f:
-              f.write(content)
+              f.write(body)
           EOF
 
-      - name: Commit and push
+      - name: Create or update changelog PR
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "concierge-bot"
+          BRANCH="changelog/unreleased"
+
+          git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git diff --quiet CHANGELOG.md && echo "No changes" && exit 0
+
+          git checkout -B "$BRANCH"
           git add CHANGELOG.md
-          git diff --staged --quiet && exit 0
-          git commit -m "docs(changelog): #${PR_NUMBER} ${PR_TITLE}"
-          git push
+          git commit -m "docs(changelog): update unreleased changes"
+          git push -f origin "$BRANCH"
+
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Updated existing PR #${EXISTING_PR}"
+          else
+            gh pr create \
+              --title "docs(changelog): update unreleased changes" \
+              --body "Auto-generated changelog update. This PR is kept up to date as new PRs are merged." \
+              --head "$BRANCH" \
+              --base main
+          fi
