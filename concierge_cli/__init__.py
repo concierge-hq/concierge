@@ -17,7 +17,7 @@ TEMPLATE_MAIN = '''"""Shopping workflow with Concierge stages."""
 import os
 from concierge import Concierge
 
-app = Concierge("{name}")
+app = Concierge("{name}", host="0.0.0.0")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
