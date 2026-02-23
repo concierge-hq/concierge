@@ -5,8 +5,8 @@ class Sharable:
     """Mark a tool parameter as sharable.
 
     When a parameter is annotated with Sharable(), the LLM can either provide
-    a literal value or reference an upstream step's output using @step_id.field
-    syntax in a plan.
+    a literal value or indicate that the value should be taken from an upstream
+    step's output via the plan's ``output_by_reference`` mechanism.
 
     Usage:
         from typing import Annotated
