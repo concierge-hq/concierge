@@ -452,8 +452,12 @@ def init(name="concierge-app", chatgpt=False):
     else:
         # Basic MCP server
         project_dir.mkdir()
-        (project_dir / "main.py").write_text(TEMPLATE_MAIN.format(name=name))
-        (project_dir / "README.md").write_text(TEMPLATE_README.format(name=name))
+        (project_dir / "main.py").write_text(
+            TEMPLATE_MAIN.format(name=name), encoding="utf-8"
+        )
+        (project_dir / "README.md").write_text(
+            TEMPLATE_README.format(name=name), encoding="utf-8"
+        )
         (project_dir / "requirements.txt").write_text(TEMPLATE_REQUIREMENTS)
 
     # Always write settings.json with unique project_id
