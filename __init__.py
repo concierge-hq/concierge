@@ -36,6 +36,7 @@ def _is_raw_server(obj: Any) -> bool:
 class ProviderType(Enum):
     PLAIN = "plain"
     SEARCH = "search"
+    PLAN = "plan"
 
 
 def _get_provider_class(provider_type: ProviderType):
@@ -44,6 +45,10 @@ def _get_provider_class(provider_type: ProviderType):
         from concierge.backends.search_backend import SearchBackend
 
         return SearchBackend
+    if provider_type == ProviderType.PLAN:
+        from concierge.backends.plan_backend import PlanBackend
+
+        return PlanBackend
     return VanillaBackend
 
 
