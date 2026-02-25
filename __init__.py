@@ -15,11 +15,13 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.server import Context
 
 from concierge.backends.vanilla_backend import VanillaBackend
+from concierge.backends.plan_backend import PlanBackend
 from concierge.core.widget import Widget, WidgetMode
 from concierge.core.telemetry import metrics, ENABLED as METRICS_ENABLED
 from concierge.adapters.raw_server_adapter import RawServerAdapter
 from concierge.state import get_default_backend
 from concierge.state.base import StateBackend
+from concierge.backends.code_backend import CodeBackend
 from mcp.server.lowlevel.server import request_ctx
 
 
@@ -37,6 +39,7 @@ class ProviderType(Enum):
     PLAIN = "plain"
     SEARCH = "search"
     PLAN = "plan"
+    CODE = "code"
 
 
 def _get_provider_class(provider_type: ProviderType):
@@ -46,9 +49,11 @@ def _get_provider_class(provider_type: ProviderType):
 
         return SearchBackend
     if provider_type == ProviderType.PLAN:
-        from concierge.backends.plan_backend import PlanBackend
 
         return PlanBackend
+    if provider_type == ProviderType.CODE:
+
+        return CodeBackend
     return VanillaBackend
 
 
@@ -444,6 +449,7 @@ class Concierge:
 
     def _setup_read_resource_handler(self) -> None:
         widgets_by_uri = {w.uri: w for w in self._widgets}
+        provider_resource_results = self._provider_resource_results
         get_html = self._get_widget_html
 
         original_handler = self._server._mcp_server.request_handlers.get(
@@ -467,6 +473,9 @@ class Concierge:
                     )
                 ]
                 return types.ServerResult(types.ReadResourceResult(contents=contents))
+
+            if uri_str in provider_resource_results:
+                return provider_resource_results[uri_str]
 
             if original_handler:
                 return await original_handler(req)
@@ -523,6 +532,11 @@ class Concierge:
 
         served_tools = self._provider.serve_tools()
         self._server._tool_manager._tools = {t.name: t for t in served_tools}
+
+        self._provider_resource_results: Dict[str, Any] = {}
+        for resource, result in self._provider.serve_resources():
+            self._pending_resources.append(resource)
+            self._provider_resource_results[str(resource.uri)] = result
 
         self._setup_resource_handler()
         self._setup_read_resource_handler()
