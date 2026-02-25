@@ -8,5 +8,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- [#45](https://github.com/concierge-hq/concierge/pull/45) (#41) v0.7 Add support for Context Aware server side capabilities (@ArnavBalyan)
 
