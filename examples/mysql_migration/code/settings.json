@@ -1,0 +1,5 @@
+{
+  "command": "python main.py",
+  "project_id": "db-migrate-code",
+  "state_backend": "postgres"
+}

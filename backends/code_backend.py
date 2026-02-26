@@ -263,7 +263,8 @@ class CodeBackend(BaseProvider):
                 self.icons = None
                 self._func = func
 
-            async def run(self, arguments):
+            async def run(self, arguments, **kwargs):
+                """Run the tool. Accepts context/convert_result from MCP SDK and ignores them."""
                 return await self._func(**arguments)
 
         async def execute_code(code: str, timeout: int = 30):
