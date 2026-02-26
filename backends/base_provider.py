@@ -16,3 +16,7 @@ class BaseProvider(ABC):
     def serve_tools(self):
         """Return tool functions to expose on the MCP server."""
         pass
+
+    def serve_resources(self):
+        """Return (Resource, ServerResult) tuples to expose on the MCP server."""
+        return []
