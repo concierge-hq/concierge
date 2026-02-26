@@ -49,10 +49,8 @@ def _get_provider_class(provider_type: ProviderType):
 
         return SearchBackend
     if provider_type == ProviderType.PLAN:
-
         return PlanBackend
     if provider_type == ProviderType.CODE:
-
         return CodeBackend
     return VanillaBackend
 
