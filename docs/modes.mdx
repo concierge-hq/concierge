@@ -1,0 +1,122 @@
+---
+title: Provider Modes
+description: "Control how tools are exposed to AI agents"
+---
+
+Concierge wraps your tools through a **provider mode** that controls what the agent sees. Four modes, each a different trade-off between simplicity and structure.
+
+## Plain
+
+Default. All tools exposed directly — no wrapping, no transformation.
+
+```python
+from concierge import Concierge
+
+app = Concierge("my-server")
+```
+
+The agent sees every tool you register and calls them by name. Use this for small APIs where all tools are relevant at once.
+
+## Search
+
+Two meta-tools: `search_tools(query)` and `call_tool(tool_name, arguments)`. The agent discovers tools via semantic search, then calls them by name.
+
+```python
+from concierge import Concierge, Config, ProviderType
+
+app = Concierge(
+    "my-server",
+    config=Config(provider_type=ProviderType.SEARCH),
+)
+```
+
+Uses `sentence-transformers` for embeddings (install separately). Designed for large APIs with 100+ tools where the agent shouldn't see everything at once.
+
+**Config options:**
+- `max_results` — number of search results returned (default: `5`)
+- `model` — custom `SentenceTransformer` instance (default: `BAAI/bge-large-en-v1.5`)
+
+## Plan
+
+One meta-tool: `execute_plan(steps)`. The agent submits a JSON plan — a list of sequential steps that can reference each other's outputs.
+
+```python
+from concierge import Concierge, Config, ProviderType
+
+app = Concierge(
+    "my-server",
+    config=Config(provider_type=ProviderType.PLAN),
+)
+```
+
+**What the agent sends:**
+
+```json
+{
+  "steps": [
+    {"id": "backup", "tool": "create_backup", "args": {"database": "prod"}},
+    {
+      "id": "validate",
+      "tool": "validate_backup",
+      "args": {
+        "backup_id": {"output_by_reference": {"backup": ["backup_id"]}}
+      }
+    }
+  ]
+}
+```
+
+Steps execute sequentially. A step can pass data to later steps using `output_by_reference` — but only into parameters annotated with `Sharable()`:
+
+```python
+from typing import Annotated
+from concierge.core.sharable import Sharable
+
+@app.tool()
+def validate_backup(backup_id: Annotated[str, Sharable()]) -> dict:
+    ...
+```
+
+The reference `{"output_by_reference": {"backup": ["backup_id"]}}` resolves to `results["backup"]["backup_id"]`. Only backward references allowed — no cycles, no self-references.
+
+## Code
+
+One meta-tool: `execute_code(code, timeout)`. The agent writes async Python that calls tools directly.
+
+```python
+from concierge import Concierge, Config, ProviderType
+
+app = Concierge(
+    "my-server",
+    config=Config(provider_type=ProviderType.CODE),
+)
+```
+
+**What the agent writes:**
+
+```python
+# Discovery
+print(runtime.list_tools())
+print(runtime.get_tool_info("create_backup"))
+print(runtime.search_tools("backup"))
+
+# Call tools
+backup = await tools.create_backup(database="prod")
+result = await tools.validate_backup(backup_id=backup["backup_id"])
+print(result)
+```
+
+Two modules are injected into the sandbox:
+- `tools` — every registered tool as an async callable
+- `runtime` — discovery helpers: `list_tools()`, `get_tool_info(name)`, `search_tools(query)`
+
+The sandbox restricts imports, `eval`, `exec`, `open`, and other unsafe builtins. Default timeout is 30 seconds.
+
+## Comparison
+
+| Mode | Agent sees | Best for |
+|------|-----------|----------|
+| Plain | All tools directly | Small APIs (&lt;20 tools) |
+| Search | `search_tools` + `call_tool` | Large APIs (100+ tools) |
+| Plan | `execute_plan` | Multi-step workflows with data dependencies |
+| Code | `execute_code` | Complex logic, iteration, conditionals |

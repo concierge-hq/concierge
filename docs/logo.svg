@@ -1,0 +1,38 @@
+<svg width="2000" height="420" viewBox="0 0 2000 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Back arm (upper-right to lower-left): strong dark gradient -->
+    <linearGradient id="bbGradB" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#666666"/>
+      <stop offset="0.5" stop-color="#222222"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+
+    <!-- Front arm (lower-left to upper-right): flat matte black -->
+    <linearGradient id="bbGradA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#000000"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Transparent background -->
+
+  <!-- ICON -->
+  <g shape-rendering="crispEdges">
+    <!-- arm 2: +43° (back arm, visible gradient) -->
+    <g transform="rotate(43 420 210)">
+      <rect x="-100" y="165" width="1100" height="90" rx="14" fill="url(#bbGradB)"/>
+    </g>
+
+    <!-- arm 1: -43° (front arm, flat black) -->
+    <g transform="rotate(-43 420 210)">
+      <rect x="-100" y="165" width="1100" height="90" rx="14" fill="url(#bbGradA)"/>
+    </g>
+  </g>
+
+  <!-- WORDMARK -->
+  <text x="760" y="270"
+        font-family="Inter, Montserrat, Avenir Next, Helvetica Neue, Arial, sans-serif"
+        font-size="160" font-weight="700" letter-spacing="8" fill="#000000">
+    CONCIERGE
+  </text>
+</svg>

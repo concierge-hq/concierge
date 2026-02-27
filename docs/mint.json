@@ -1,6 +1,11 @@
 {
   "$schema": "https://mintlify.com/schema.json",
   "name": "Concierge",
+  "logo": {
+    "light": "/logo.svg",
+    "dark": "/logo-dark.svg"
+  },
+  "favicon": "/logo.svg",
   "colors": {
     "primary": "#8B5CF6",
     "light": "#A78BFA",
@@ -15,7 +20,7 @@
   "navigation": [
     {
       "group": "Documentation",
-      "pages": ["introduction"]
+      "pages": ["introduction", "modes", "staged-workflows"]
     }
   ],
   "footerSocials": {

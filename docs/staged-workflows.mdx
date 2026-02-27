@@ -1,0 +1,100 @@
+---
+title: Staged Workflows
+description: "Progressive tool disclosure via stages and transitions"
+---
+
+Stages control **which tools the agent can see at each step** of a workflow. Instead of exposing everything at once, you define groups of tools and the legal paths between them.
+
+This is orthogonal to [provider modes](/modes) — stages work with any mode.
+
+## Defining Stages
+
+Map stage names to tool lists:
+
+```python
+app.stages = {
+    "preflight": ["preflight_check"],
+    "drain": ["drain_connections"],
+    "backup": ["create_backup", "validate_backup"],
+    "migrate": ["apply_migration"],
+    "verify": ["run_smoke_tests"],
+    "release": ["undrain_connections", "notify_stakeholders"],
+    "finalize": ["finalize_migration"],
+}
+```
+
+The first stage defined is the default. When a session starts, the agent only sees tools from that stage.
+
+## Defining Transitions
+
+Map each stage to its allowed next stages:
+
+```python
+app.transitions = {
+    "preflight": ["drain"],
+    "drain": ["backup"],
+    "backup": ["migrate"],
+    "migrate": ["verify"],
+    "verify": ["release"],
+    "release": ["finalize"],
+    "finalize": [],
+}
+```
+
+An empty list means the stage is terminal — no further transitions.
+
+## Auto-Generated Tools
+
+When stages are defined, Concierge adds two tools automatically:
+
+- **`proceed_to_next_stage(target_stage)`** — moves to a new stage. Only accepts stages listed in the current stage's transitions. Triggers a tool list refresh so the agent sees the new stage's tools.
+- **`terminate_session()`** — clears all session state and resets to the initial stage.
+
+## State
+
+Per-session key-value storage, available in any tool:
+
+```python
+@app.tool()
+def add_to_cart(product_id: str) -> dict:
+    cart = app.get_state("cart", [])
+    cart.append(product_id)
+    app.set_state("cart", cart)
+    return {"cart": cart}
+```
+
+State persists across stage transitions within a session. Cleared on `terminate_session()`.
+
+**State backends:**
+- **In-memory** (default) — single-process, no persistence
+- **Postgres** — distributed, persistent. Set `CONCIERGE_STATE_URL=postgresql://user:pass@host/db`
+
+## Session Flow
+
+```
+Session starts → agent sees "preflight" tools + proceed_to_next_stage
+  → agent calls preflight_check
+  → agent calls proceed_to_next_stage("drain")
+  → tool list refreshes → agent sees "drain" tools
+  → ...
+  → agent reaches terminal stage ("finalize")
+  → agent calls terminate_session → session resets
+```
+
+## Combining with Provider Modes
+
+Stages wrap whatever the provider mode exposes. For example, with `ProviderType.PLAN`, the agent sees `execute_plan` but it can only reference tools available in the current stage.
+
+```python
+from concierge import Concierge, Config, ProviderType
+
+app = Concierge(
+    "my-server",
+    config=Config(provider_type=ProviderType.PLAN),
+)
+
+# register tools...
+
+app.stages = {"browse": ["search"], "checkout": ["pay"]}
+app.transitions = {"browse": ["checkout"], "checkout": []}
+```
