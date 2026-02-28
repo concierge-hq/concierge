@@ -89,6 +89,12 @@ class Concierge:
         **fastmcp_kwargs,
     ):
         if isinstance(server, FastMCP):
+            if fastmcp_kwargs:
+                raise ValueError(
+                    f"Cannot pass FastMCP kwargs {list(fastmcp_kwargs)} when "
+                    "server is already a FastMCP instance. "
+                    "Configure these on the FastMCP instance directly."
+                )
             self._server = server
             self._is_raw_server = False
         elif _is_raw_server(server):
