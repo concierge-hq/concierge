@@ -131,9 +131,11 @@ def _build_stub(tool):
 EXECUTE_CODE_DESCRIPTION = (
     "Execute Python code in a sandboxed environment with access to MCP tool APIs. "
     "Code runs inside an async function — use `await` for tool calls, `print()` for output. "
-    "1. DISCOVER: `runtime.list_tools()`, `runtime.get_tool_info(name)`, `runtime.search_tools(query)`. "
-    "2. CALL: `await tools.<tool_name>(param=value)` — tools are available on the `tools` module. "
-    "Run `print(runtime.list_tools())` to see available tools."
+    "Before calling any tool, inspect it with `print(runtime.get_tool_info('tool_name'))` "
+    "to view its full Python stub (signature, types, docstring). "
+    "Use `runtime.list_tools()` to see all available tools, `runtime.search_tools(query)` to filter. "
+    "Call tools via `result = await tools.<name>(param=value)` — store results in variables, "
+    "compose across tools, and chain outputs freely like normal Python."
 )
 
 RESOURCE_URI = "resource://concierge/code-backend/capabilities"
