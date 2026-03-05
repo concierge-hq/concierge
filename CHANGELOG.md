@@ -8,5 +8,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- [#64](https://github.com/concierge-hq/concierge/pull/64) (#63) v0.9 Update the code backend prompt to be descriptive of tool spec view (@ArnavBalyan)
+- [#67](https://github.com/concierge-hq/concierge/pull/67) (#66) v0.11 Pass user defined kwargs to native Concierge apps (@ArnavBalyan)
 
