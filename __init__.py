@@ -605,10 +605,10 @@ class Concierge:
         metrics.start()
         return self._server.run(*args, **kwargs)
 
-    def streamable_http_app(self):
+    def streamable_http_app(self, **kwargs):
         self._finalize()
         metrics.start()
-        return self._server.streamable_http_app()
+        return self._server.streamable_http_app(**kwargs)
 
     def widget(
         self,
