@@ -52,9 +52,9 @@ class FastMCPAdapter:
         """Delegate to FastMCP's run method."""
         return self._server.run(*args, **kwargs)
 
-    def streamable_http_app(self) -> "Starlette":
+    def streamable_http_app(self, **kwargs) -> "Starlette":
         """Delegate to FastMCP's streamable_http_app."""
-        return self._server.streamable_http_app()
+        return self._server.streamable_http_app(**kwargs)
 
     def __getattr__(self, name: str) -> Any:
         """Forward any other attribute access to the underlying FastMCP server."""

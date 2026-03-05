@@ -83,6 +83,6 @@ class ServerAdapter(Protocol):
         """Run the server."""
         ...
 
-    def streamable_http_app(self) -> "Starlette":
+    def streamable_http_app(self, **kwargs) -> "Starlette":
         """Get Starlette app for HTTP transport."""
         ...

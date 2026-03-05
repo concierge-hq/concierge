@@ -342,7 +342,7 @@ class RawServerAdapter:
         """Run the raw server."""
         return self._raw_server.run(*args, **kwargs)
 
-    def streamable_http_app(self) -> Starlette:
+    def streamable_http_app(self, **kwargs) -> Starlette:
         """
         Build a Starlette app for HTTP transport.
 
