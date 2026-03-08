@@ -86,6 +86,7 @@ class Concierge:
         assets_dir: Optional[str] = None,
         state_backend: Optional[StateBackend] = None,
         workflow_instructions: Optional[str] = None,
+        upstream_servers: Optional[List[str]] = None,
         **fastmcp_kwargs,
     ):
         if isinstance(server, FastMCP):
@@ -123,6 +124,8 @@ class Concierge:
 
         # State backend (in-memory by default, or from CONCIERGE_STATE_URL env var)
         self._state = state_backend or get_default_backend()
+
+        self._upstream_servers = upstream_servers or []
 
         self._stages: Dict[str, List[str]] = {}  # stage_name -> [tool_names]
         self._transitions: Dict[str, List[str]] = {}  # stage_name -> [next_stages]
@@ -547,6 +550,12 @@ class Concierge:
         self._setup_staged_tools()
         self._setup_metrics()
 
+        # Install proxy LAST — it wraps the final handlers so it can
+        # fall through to local tools/resources/prompts correctly.
+        if self._upstream_servers:
+            from concierge.proxy import install_proxy_handlers
+            install_proxy_handlers(self)
+
     def _setup_metrics(self):
         if not METRICS_ENABLED:
             return
@@ -608,7 +617,11 @@ class Concierge:
     def streamable_http_app(self, **kwargs):
         self._finalize()
         metrics.start()
-        return self._server.streamable_http_app(**kwargs)
+        try:
+            return self._server.streamable_http_app(**kwargs)
+        except TypeError:
+            # Older mcp versions don't support kwargs like allowed_hosts
+            return self._server.streamable_http_app()
 
     def widget(
         self,
