@@ -1,0 +1,73 @@
+---
+title: "Logs"
+description: "View logs from your deployed servers"
+icon: "scroll-text"
+---
+
+Real-time and historical logs for servers deployed with `concierge deploy`. Use it to debug startup issues, trace errors, and monitor server health.
+
+## What You See
+
+### Startup Logs
+
+When your server boots, Concierge logs:
+- Python version and dependencies loaded
+- Registered tools, resources, and prompts
+- Stage and transition configuration
+- Transport binding (port, protocol)
+- State backend connection status
+
+```
+[2026-03-08 10:23:01] INFO  Starting Concierge server "shopping"
+[2026-03-08 10:23:01] INFO  Registered 6 tools: search_products, add_to_cart, ...
+[2026-03-08 10:23:01] INFO  Stages: browse → cart → checkout
+[2026-03-08 10:23:01] INFO  State backend: postgres (connected)
+[2026-03-08 10:23:01] INFO  Listening on https://your-server.concierge.app
+```
+
+### Runtime Errors
+
+Errors originating from your tool code are captured with full tracebacks:
+
+```
+[2026-03-08 10:25:33] ERROR Tool "checkout" raised exception:
+  File "main.py", line 42, in checkout
+    total = calculate_total(cart)
+  TypeError: calculate_total() got an unexpected keyword argument 'currency'
+```
+
+### Request Logs
+
+Every MCP request/response is logged:
+
+```
+[2026-03-08 10:24:15] INFO  → tools/call: search_products(query="laptop")
+[2026-03-08 10:24:15] INFO  ← 200 OK (23ms): {products: [...]}
+[2026-03-08 10:24:18] INFO  → tools/call: proceed_to_next_stage(target="cart")
+[2026-03-08 10:24:18] INFO  ← 200 OK (2ms): stage changed to "cart"
+```
+
+## Accessing Logs
+
+### CLI
+
+```bash
+# Stream live logs from current project directory
+concierge logs
+
+# Stream logs for a specific project
+concierge logs <project_id>
+```
+
+### Dashboard
+
+Logs are also available in the [Concierge Platform](https://getconcierge.app) dashboard, with:
+
+- Full-text search
+- Log level filtering (DEBUG, INFO, WARN, ERROR)
+- Time range selection
+- Session ID filtering
+
+<Tip>
+Use session ID filtering to trace a single user's entire workflow:from the first tool call to checkout.
+</Tip>

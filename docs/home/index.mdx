@@ -1,0 +1,153 @@
+---
+title: "Welcome"
+description: "Production-grade MCP framework with progressive tool disclosure"
+icon: "house"
+mode: "frame"
+---
+
+import { GradientCard, GradientCardDark } from '/snippets/gradient-card.jsx'
+
+<div className="px-4 py-12 mt-16 lg:pb-20 max-w-4xl mx-auto">
+
+<div className="text-center">
+<img
+  noZoom
+  src="/logo/light.svg"
+  className="block dark:hidden mx-auto h-10 w-auto"
+  alt="Concierge"
+/>
+<img
+  noZoom
+  src="/logo/dark.svg"
+  className="hidden dark:block mx-auto h-10 w-auto"
+  alt="Concierge"
+/>
+
+<h1 className="text-3xl lg:text-4xl font-bold text-zinc-900 dark:text-zinc-50 mt-8 tracking-tight">
+  The Production MCP Framework
+</h1>
+
+<p className="max-w-xl mx-auto mt-4 text-zinc-500 dark:text-zinc-400 text-base leading-relaxed">
+  Build reliable MCP servers with progressive tool disclosure, staged workflows, and code-based execution.
+</p>
+
+<div className="flex items-center justify-center gap-3 mt-8">
+  <a href="/getting-started/quickstart" className="px-5 py-2.5 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium rounded-lg no-underline transition-colors">
+    Get Started
+  </a>
+  <a href="https://github.com/concierge-hq/concierge" className="px-5 py-2.5 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-sm font-medium rounded-lg no-underline hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
+    GitHub
+  </a>
+</div>
+</div>
+
+{/* Light mode cards */}
+<div className="mt-16 grid sm:grid-cols-3 gap-4 block dark:hidden">
+  <GradientCard
+    title="SDK"
+    description="Stages, transitions, state, and provider modes."
+    icon="🧩"
+    href="/sdk/index"
+    color={270}
+  />
+  <GradientCard
+    title="Platform"
+    description="Inspector, logs, evaluation, and analytics."
+    icon="📊"
+    href="/platform/inspector"
+    color={210}
+  />
+  <GradientCard
+    title="Quickstart"
+    description="Zero to deployed in 5 minutes."
+    icon="🚀"
+    href="/getting-started/quickstart"
+    color={160}
+  />
+</div>
+
+{/* Dark mode cards */}
+<div className="mt-16 grid sm:grid-cols-3 gap-4 hidden dark:grid">
+  <GradientCardDark
+    title="SDK"
+    description="Stages, transitions, state, and provider modes."
+    icon="🧩"
+    href="/sdk/index"
+    color={270}
+  />
+  <GradientCardDark
+    title="Platform"
+    description="Inspector, logs, evaluation, and analytics."
+    icon="📊"
+    href="/platform/inspector"
+    color={210}
+  />
+  <GradientCardDark
+    title="Quickstart"
+    description="Zero to deployed in 5 minutes."
+    icon="🚀"
+    href="/getting-started/quickstart"
+    color={160}
+  />
+</div>
+
+<div className="mt-16 text-center">
+  <p className="text-xs font-medium text-zinc-400 dark:text-zinc-600 uppercase tracking-widest mb-5">One-line migration from FastMCP</p>
+</div>
+
+```python
+# Before
+from mcp.server.fastmcp import FastMCP
+app = FastMCP("my-server")
+
+# After:all existing @app.tool() decorators keep working
+from concierge import Concierge
+app = Concierge("my-server")
+```
+
+</div>
+
+<div className="max-w-4xl mx-auto px-6 mt-4">
+
+<h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">Why Concierge?</h2>
+
+<p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8">
+Standard MCP servers expose all tools at once. At scale, this means bloated context, unpredictable tool selection, no enforced ordering, and no session state.
+</p>
+
+<CardGroup cols={3}>
+  <Card title="Progressive Disclosure" icon="eye" href="/home/what-is-concierge">
+    Show only relevant tools per stage. Less context, better accuracy, lower cost.
+  </Card>
+  <Card title="Staged Workflows" icon="git-branch" href="/sdk/transitions">
+    Enforce tool ordering with transitions. Auto-generated navigation. Deterministic flows.
+  </Card>
+  <Card title="Code Execution" icon="terminal" href="/backends/code">
+    Agent writes Python to call tools. 98% less context. Sandboxed and secure.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={3}>
+  <Card title="Persistent State" icon="database" href="/sdk/state">
+    Per-session key-value storage. Survives transitions. In-memory or Postgres.
+  </Card>
+  <Card title="Drop-in Compatible" icon="refresh-cw" href="/backends/index">
+    Swap one import. All existing tools keep working. Fully MCP-compliant.
+  </Card>
+  <Card title="Platform" icon="layout-dashboard" href="/platform/inspector">
+    Inspector, auto-evaluation, analytics, and server logs.
+  </Card>
+</CardGroup>
+
+<h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mt-16 mb-4">Community</h2>
+
+<CardGroup cols={2}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/bfT3VkhF">
+    Chat with the team and other developers.
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/concierge-hq/concierge">
+    Star, report bugs, or contribute.
+  </Card>
+</CardGroup>
+
+</div>

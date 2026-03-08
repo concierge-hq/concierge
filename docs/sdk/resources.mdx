@@ -1,0 +1,57 @@
+---
+title: "Resources"
+description: "Expose read-only data to AI agents via MCP"
+icon: "file-text"
+---
+
+Resources expose **read-only data** to MCP clients. Unlike tools (which perform actions), resources provide context:database schemas, config files, documentation, or any data the LLM needs to make better decisions.
+
+## Defining Resources
+
+```python
+from concierge import Concierge
+
+app = Concierge("my-server")
+
+@app.resource("resource://app/settings")
+def get_settings() -> str:
+    """Current application settings."""
+    return json.dumps({
+        "max_cart_items": 50,
+        "supported_currencies": ["USD", "EUR", "GBP"],
+        "free_shipping_threshold": 100,
+    })
+```
+
+The resource URI (`resource://app/settings`) is how clients reference this resource. For ChatGPT widget apps, use the `ui://` scheme (e.g. `ui://widget/my-widget`).
+
+## Resource Templates
+
+Use URI templates for dynamic resources:
+
+```python
+@app.resource("resource://products/{product_id}")
+def get_product_docs(product_id: str) -> str:
+    """Product documentation and specifications."""
+    # Replace with your own data source
+    return f"# Product {product_id}\n\nA great product.\n\nPrice: $99"
+```
+
+## When to Use Resources vs Tools
+
+| Use Case | Resource | Tool |
+|----------|----------|------|
+| Read-only data | Yes | No |
+| Database schema | Yes | No |
+| Configuration | Yes | No |
+| Search/query | No | Yes |
+| Create/update/delete | No | Yes |
+| Side effects | No | Yes |
+
+<Tip>
+Resources are fetched **once** at the start of a conversation and cached. Use them for stable context that doesn't change per-request.
+</Tip>
+
+## Resources with Stages
+
+Resources can be scoped to stages, just like tools. This means the LLM only sees resources relevant to the current workflow step.

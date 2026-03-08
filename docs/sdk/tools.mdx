@@ -1,0 +1,108 @@
+---
+title: "Tools"
+description: "Define and expose functions to AI agents via MCP"
+icon: "wrench"
+---
+
+Tools are the primary way your MCP server exposes functionality to AI agents. Each tool is a Python function that the LLM can call.
+
+## Defining Tools
+
+Use the `@app.tool()` decorator:
+
+```python
+from concierge import Concierge
+
+app = Concierge("my-server")
+
+@app.tool()
+def search_products(query: str, max_results: int = 10) -> dict:
+    """Search the product catalog by keyword."""
+    # Your business logic here (API calls, database queries, etc.)
+    return {"products": [
+        {"id": "p1", "name": "Laptop", "price": 899},
+        {"id": "p2", "name": "Mouse", "price": 29},
+    ]}
+```
+
+<Tip>
+The **docstring** becomes the tool's description that the LLM sees. Write clear, action-oriented descriptions so the LLM knows when to use each tool.
+</Tip>
+
+## Type Annotations
+
+Concierge uses type annotations to generate the tool's JSON schema. The LLM sees this schema and knows what arguments to provide:
+
+```python
+@app.tool()
+def create_user(
+    name: str,
+    email: str,
+    age: int = 25,
+    tags: list[str] = [],
+) -> dict:
+    """Create a new user account."""
+    ...
+```
+
+This generates a schema with `name` and `email` as required, `age` and `tags` as optional with defaults.
+
+## Return Values
+
+Tools should return JSON-serializable data (dicts, lists, strings, numbers):
+
+```python
+@app.tool()
+def get_user(user_id: str) -> dict:
+    """Look up a user by ID."""
+    # Replace with your own data source
+    return {
+        "id": user_id,
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+    }
+```
+
+## Tools with State
+
+Tools can read and write session state:
+
+```python
+@app.tool()
+def add_to_cart(product_id: str) -> dict:
+    """Add a product to the shopping cart."""
+    cart = app.get_state("cart", [])
+    cart.append(product_id)
+    app.set_state("cart", cart)
+    return {"cart": cart, "count": len(cart)}
+```
+
+## Assigning Tools to Stages
+
+When using stages, map tool names to stages:
+
+```python
+app.stages = {
+    "browse": ["search_products", "get_product_details"],
+    "cart": ["add_to_cart", "remove_from_cart"],
+    "checkout": ["checkout", "apply_coupon"],
+}
+```
+
+A tool not assigned to any stage is **never visible** to the agent (unless you have no stages defined, in which case all tools are visible).
+
+## Error Handling
+
+Return errors as data:don't raise exceptions:
+
+```python
+@app.tool()
+def delete_user(user_id: str) -> dict:
+    """Delete a user by ID."""
+    # Replace with your own logic
+    if user_id == "unknown":
+        return {"error": f"User {user_id} not found"}
+    return {"deleted": True, "user_id": user_id}
+```
+
+The LLM can read the error and decide what to do next:retry, ask the user for clarification, or try a different approach.
