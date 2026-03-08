@@ -554,6 +554,7 @@ class Concierge:
         # fall through to local tools/resources/prompts correctly.
         if self._upstream_servers:
             from concierge.proxy import install_proxy_handlers
+
             install_proxy_handlers(self)
 
     def _setup_metrics(self):

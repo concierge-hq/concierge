@@ -50,9 +50,14 @@ class UpstreamConnection:
     async def _run(self) -> None:
         """Background task that maintains the MCP client session."""
         try:
-            async with streamable_http_client(self.url) as (read, write, _get_session_id):
+            async with streamable_http_client(self.url) as (
+                read,
+                write,
+                _get_session_id,
+            ):
                 async with ClientSession(
-                    read, write,
+                    read,
+                    write,
                     message_handler=self._handle_upstream_message,
                 ) as session:
                     await session.initialize()
@@ -77,12 +82,15 @@ class UpstreamConnection:
             return
         if isinstance(message, ServerNotification) and self._notification_callback:
             root = message.root
-            if isinstance(root, (
-                ToolListChangedNotification,
-                ResourceListChangedNotification,
-                PromptListChangedNotification,
-                ResourceUpdatedNotification,
-            )):
+            if isinstance(
+                root,
+                (
+                    ToolListChangedNotification,
+                    ResourceListChangedNotification,
+                    PromptListChangedNotification,
+                    ResourceUpdatedNotification,
+                ),
+            ):
                 try:
                     await self._notification_callback(message, self.url)
                 except Exception as e:
@@ -125,6 +133,7 @@ class UpstreamConnection:
 
     async def read_resource(self, uri: str) -> ReadResourceResult:
         from pydantic import AnyUrl
+
         return await self._session.read_resource(AnyUrl(uri))
 
     async def list_resource_templates(self) -> List[ResourceTemplate]:
@@ -135,7 +144,9 @@ class UpstreamConnection:
         result = await self._session.list_prompts()
         return list(result.prompts)
 
-    async def get_prompt(self, name: str, arguments: Optional[dict] = None) -> GetPromptResult:
+    async def get_prompt(
+        self, name: str, arguments: Optional[dict] = None
+    ) -> GetPromptResult:
         return await self._session.get_prompt(name, arguments=arguments)
 
 
@@ -151,18 +162,24 @@ class SessionState:
         self.prompt_to_upstream_name: Dict[str, str] = {}
         self._server_session = None  # ServerSession for forwarding notifications
 
-    async def _forward_notification(self, notification: ServerNotification, source_url: str) -> None:
+    async def _forward_notification(
+        self, notification: ServerNotification, source_url: str
+    ) -> None:
         """Forward an upstream notification to the connected client."""
         if not self._server_session:
             logger.debug(f"No server session to forward notification from {source_url}")
             return
         try:
             await self._server_session.send_notification(notification)
-            logger.debug(f"Forwarded {notification.root.__class__.__name__} from {source_url}")
+            logger.debug(
+                f"Forwarded {notification.root.__class__.__name__} from {source_url}"
+            )
         except Exception as e:
             # Write stream closed = client disconnected; stop retrying
             self._server_session = None
-            logger.debug(f"Client disconnected, clearing server session (was forwarding from {source_url}): {e}")
+            logger.debug(
+                f"Client disconnected, clearing server session (was forwarding from {source_url}): {e}"
+            )
 
 
 class SessionPool:
@@ -189,8 +206,11 @@ class SessionPool:
 
         async def _try_connect(url: str):
             import time as _time
+
             start = _time.time()
-            conn = UpstreamConnection(url, notification_callback=state._forward_notification)
+            conn = UpstreamConnection(
+                url, notification_callback=state._forward_notification
+            )
             try:
                 await asyncio.wait_for(conn.connect(), timeout=600)
                 elapsed = _time.time() - start
@@ -202,7 +222,9 @@ class SessionPool:
                     await conn.disconnect()
             except BaseException as e:
                 elapsed = _time.time() - start
-                logger.warning(f"Failed {url} after {elapsed:.1f}s: {type(e).__name__}: {e}")
+                logger.warning(
+                    f"Failed {url} after {elapsed:.1f}s: {type(e).__name__}: {e}"
+                )
                 try:
                     await conn.disconnect()
                 except BaseException:
@@ -210,8 +232,10 @@ class SessionPool:
 
         batch_size = 15
         for i in range(0, len(needs), batch_size):
-            batch = needs[i:i + batch_size]
-            logger.info(f"Connecting batch {i // batch_size + 1}: {len(batch)} upstreams...")
+            batch = needs[i : i + batch_size]
+            logger.info(
+                f"Connecting batch {i // batch_size + 1}: {len(batch)} upstreams..."
+            )
             tasks = [asyncio.ensure_future(_try_connect(u)) for u in batch]
             await asyncio.shield(asyncio.gather(*tasks, return_exceptions=True))
         logger.info(f"All batches done. Connected: {len(state.conns)}/{len(needs)}")
@@ -275,7 +299,9 @@ def install_proxy_handlers(concierge_instance) -> None:
             except Exception as e:
                 logger.error(f"Failed to list tools from {url}: {e}")
 
-        return types.ServerResult(types.ListToolsResult(tools=local_tools + upstream_tools))
+        return types.ServerResult(
+            types.ListToolsResult(tools=local_tools + upstream_tools)
+        )
 
     handlers[types.ListToolsRequest] = _handle_list_tools
 
@@ -301,7 +327,9 @@ def install_proxy_handlers(concierge_instance) -> None:
 
     original_list_resources = handlers.get(types.ListResourcesRequest)
 
-    async def _handle_list_resources(req: types.ListResourcesRequest) -> types.ServerResult:
+    async def _handle_list_resources(
+        req: types.ListResourcesRequest,
+    ) -> types.ServerResult:
         local_resources = []
         if original_list_resources:
             local_result = await original_list_resources(req)
@@ -319,13 +347,17 @@ def install_proxy_handlers(concierge_instance) -> None:
             except Exception as e:
                 logger.error(f"Failed to list resources from {url}: {e}")
 
-        return types.ServerResult(types.ListResourcesResult(resources=local_resources + upstream_resources))
+        return types.ServerResult(
+            types.ListResourcesResult(resources=local_resources + upstream_resources)
+        )
 
     handlers[types.ListResourcesRequest] = _handle_list_resources
 
     original_read_resource = handlers.get(types.ReadResourceRequest)
 
-    async def _handle_read_resource(req: types.ReadResourceRequest) -> types.ServerResult:
+    async def _handle_read_resource(
+        req: types.ReadResourceRequest,
+    ) -> types.ServerResult:
         uri_str = str(req.params.uri)
 
         state = await _get_state()
@@ -362,7 +394,9 @@ def install_proxy_handlers(concierge_instance) -> None:
             except Exception as e:
                 logger.error(f"Failed to list prompts from {url}: {e}")
 
-        return types.ServerResult(types.ListPromptsResult(prompts=local_prompts + upstream_prompts))
+        return types.ServerResult(
+            types.ListPromptsResult(prompts=local_prompts + upstream_prompts)
+        )
 
     handlers[types.ListPromptsRequest] = _handle_list_prompts
 
