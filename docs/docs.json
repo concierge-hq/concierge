@@ -39,7 +39,7 @@
     "products": [
       {
         "product": "Concierge",
-        "description": "The framework to build production-grade MCP apps",
+        "description": "The framework to build production grade MCP apps",
         "groups": [
           {
             "group": "Welcome",
@@ -139,7 +139,7 @@
   },
   "seo": {
     "metatags": {
-      "og:title": "Concierge - Production-Grade MCP Framework",
+      "og:title": "Concierge - Production Grade MCP Framework",
       "og:description": "Build reliable MCP servers with progressive tool disclosure, staged workflows, and code-based execution for deterministic AI applications.",
       "og:site_name": "Concierge",
       "twitter:card": "summary_large_image"
