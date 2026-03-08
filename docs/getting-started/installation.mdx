@@ -1,0 +1,75 @@
+---
+title: "Installation"
+description: "Install Concierge and set up your development environment"
+icon: "download"
+---
+
+## Prerequisites
+
+| Requirement | Version |
+|-------------|---------|
+| Python | 3.10 or higher |
+| Package manager | pip, uv, or poetry |
+
+## Install the SDK
+
+<Tabs>
+  <Tab title="pip">
+  ```bash
+  pip install concierge-sdk
+  ```
+  </Tab>
+  <Tab title="uv">
+  ```bash
+  uv add concierge-sdk
+  ```
+  </Tab>
+  <Tab title="poetry">
+  ```bash
+  poetry add concierge-sdk
+  ```
+  </Tab>
+</Tabs>
+
+## CLI Tools
+
+The `concierge` CLI is included with the SDK. It provides three commands:
+
+### `concierge init`:Scaffold a new project
+
+```bash
+concierge init my-project
+cd my-project
+```
+
+This creates a project with:
+- `main.py`: a working MCP server with example stages
+- `requirements.txt`: dependencies pre-configured
+- `settings.json`: project configuration for deployment
+- `README.md`: project documentation
+
+### Run locally
+
+```bash
+python main.py
+```
+
+Starts your MCP server locally. Connect to it from any MCP client (Claude Desktop, Cursor, etc.).
+
+### `concierge deploy`:Deploy to Concierge Cloud
+
+```bash
+concierge deploy
+```
+
+Deploys your server and gives you a public URL. Your server appears in the [Concierge Platform](https://getconcierge.app) dashboard with logs, analytics, and evaluation tools.
+
+## Verify Installation
+
+```bash
+python -c "from concierge import Concierge; print('Ready')"
+```
+
+<Card title="Quickstart" icon="arrow-right" href="/getting-started/quickstart">
+  Build your first Concierge server →
+</Card>

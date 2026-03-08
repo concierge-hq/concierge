@@ -1,0 +1,52 @@
+---
+title: "Inspector"
+description: "Debug and test your MCP server with a visual interface"
+icon: "bug-play"
+---
+
+The Inspector is a web-based tool for debugging and testing your MCP server. Connect to any Concierge server and interactively explore its capabilities.
+
+## What You Can Do
+
+### List Tools and Resources
+
+Browse every tool and resource your server exposes. The Inspector displays schemas, descriptions, parameter types, and required/optional annotations for each tool.
+
+### Execute Tools and Check Outputs
+
+Click any tool to fill in parameters and execute it. See the raw JSON response, including:
+
+- Return values
+- State changes
+- Stage transitions triggered
+- Errors and validation messages
+
+### View Widget Outputs
+
+When a tool returns a widget, the Inspector renders it inline:so you can see exactly what the end user would see in their AI client.
+
+### Test MCP Capabilities
+
+| Capability | What the Inspector shows |
+|-----------|------------------------|
+| **Elicitation** | Simulates user input requests during tool execution |
+| **Prompts** | List and preview all registered prompt templates |
+| **Sampling** | Test server-initiated LLM completions |
+| **Notifications** | Monitor real-time events and progress updates |
+| **Resources** | Browse and read all exposed resources |
+
+## Launching the Inspector
+
+The Inspector is available in the [Concierge Platform](https://getconcierge.app) after deploying your server with `concierge deploy`.
+
+<Tip>
+The Inspector connects over the same MCP transport as any other client:stdio or HTTP. What you see in the Inspector is exactly what Claude, Cursor, or any MCP client would see.
+</Tip>
+
+## Stage Navigation
+
+The Inspector shows the **current stage** and available transitions. You can manually trigger `proceed_to_next_stage` to walk through your workflow step by step and verify that:
+
+- The right tools appear at each stage
+- Transitions are enforced correctly
+- State persists across stages

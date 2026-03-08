@@ -1,0 +1,148 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
+  "name": "Concierge",
+  "colors": {
+    "primary": "#7C3AED",
+    "light": "#A78BFA",
+    "dark": "#7C3AED"
+  },
+  "background": {
+    "decoration": "grid",
+    "color": {
+      "light": "#FAFAFE",
+      "dark": "#0C0C0C"
+    }
+  },
+  "favicon": "/favicon.svg",
+  "contextual": {
+    "options": [
+      "copy"
+    ]
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "feedback": {
+    "thumbsRating": true
+  },
+  "search": {
+    "prompt": "Search Concierge docs..."
+  },
+  "navigation": {
+    "anchors": [
+      {
+        "anchor": "getting-started/quickstart",
+        "icon": "rocket"
+      }
+    ],
+    "products": [
+      {
+        "product": "Concierge",
+        "description": "Production-grade MCP framework",
+        "groups": [
+          {
+            "group": "Welcome",
+            "pages": [
+              "home/index"
+            ]
+          },
+          {
+            "group": "Learn",
+            "icon": "graduation-cap",
+            "pages": [
+              "home/mcp101",
+              "home/what-is-concierge"
+            ]
+          },
+          {
+            "group": "Get Started",
+            "icon": "rocket",
+            "pages": [
+              "getting-started/installation",
+              "getting-started/quickstart"
+            ]
+          },
+          {
+            "group": "SDK",
+            "icon": "code",
+            "pages": [
+              "sdk/index",
+              "sdk/transitions",
+              "sdk/state",
+              "sdk/tools",
+              "sdk/resources",
+              "sdk/widgets"
+            ]
+          },
+          {
+            "group": "Backends",
+            "icon": "layers",
+            "pages": [
+              "backends/index",
+              "backends/plain",
+              "backends/search",
+              "backends/plan",
+              "backends/code"
+            ]
+          },
+          {
+            "group": "Platform",
+            "icon": "layout-dashboard",
+            "pages": [
+              "platform/inspector",
+              "platform/logs",
+              "platform/evaluation",
+              "platform/analytics"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://docs.getconcierge.app"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "PyPI",
+        "href": "https://pypi.org/project/concierge-sdk/"
+      },
+      {
+        "label": "Discord",
+        "icon": "discord",
+        "href": "https://discord.gg/bfT3VkhF"
+      }
+    ],
+    "primary": {
+      "type": "github",
+      "label": "GitHub",
+      "href": "https://github.com/concierge-hq/concierge"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/concierge-hq/concierge",
+      "discord": "https://discord.gg/bfT3VkhF"
+    }
+  },
+  "fonts": {
+    "family": "Inter",
+    "weight": 400,
+    "heading": {
+      "family": "Inter",
+      "weight": 600
+    }
+  },
+  "seo": {
+    "metatags": {
+      "og:title": "Concierge - Production-Grade MCP Framework",
+      "og:description": "Build reliable MCP servers with progressive tool disclosure, staged workflows, and code-based execution for deterministic AI applications.",
+      "og:site_name": "Concierge",
+      "twitter:card": "summary_large_image"
+    }
+  }
+}

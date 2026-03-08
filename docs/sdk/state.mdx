@@ -1,0 +1,121 @@
+---
+title: "State"
+description: "Persistent per-session state with backend options"
+icon: "database"
+---
+
+Concierge provides **per-session key-value storage** that persists across stage transitions. State lets your tools share data without passing it through the LLM.
+
+## Basic Usage
+
+```python
+@app.tool()
+def add_to_cart(product_id: str) -> dict:
+    """Add a product to the cart."""
+    cart = app.get_state("cart", [])
+    cart.append(product_id)
+    app.set_state("cart", cart)
+    return {"cart": cart}
+
+@app.tool()
+def checkout(payment_method: str) -> dict:
+    """Complete the purchase using items in the cart."""
+    cart = app.get_state("cart", [])
+    total = calculate_total(cart)
+    return {"order_id": "ORD-123", "items": cart, "total": total}
+```
+
+<Tip>
+State is scoped to the **session**:each connected client has its own isolated state. Two users browsing at the same time won't see each other's carts.
+</Tip>
+
+## API
+
+| Method | Description |
+|--------|------------|
+| `app.set_state(key, value)` | Store any JSON-serializable value |
+| `app.get_state(key, default)` | Retrieve a value, returning `default` if not set |
+
+Values can be strings, numbers, lists, dicts, or any JSON-serializable Python object.
+
+## State Lifecycle
+
+```mermaid
+graph TD
+    A[Session starts] --> B[State: empty]
+    B --> C[Tool sets state]
+    C --> D[Stage transition]
+    D --> E[State persists ✓]
+    E --> F[More tool calls]
+    F --> G[terminate_session]
+    G --> H[State cleared]
+```
+
+- **Persists** across stage transitions within a session
+- **Cleared** when `terminate_session()` is called
+- **Isolated** per session:no cross-session leaks
+
+## State Backends
+
+### In-Memory (Default)
+
+```python
+app = Concierge("my-server")
+# State lives in process memory:fast but not persistent across restarts
+```
+
+Best for: development, single-process deployments, stateless workflows.
+
+### Postgres
+
+```bash
+export CONCIERGE_STATE_URL=postgresql://user:pass@host/db
+```
+
+```python
+app = Concierge("my-server")
+# Concierge auto-detects the env var and uses Postgres
+```
+
+Best for: production, distributed deployments, long-running sessions.
+
+<Note>
+With Postgres state, sessions survive server restarts. A user can start a checkout flow, come back hours later, and their cart is still there.
+</Note>
+
+## Patterns
+
+### Accumulator Pattern
+
+Collect data across multiple stages:
+
+```python
+@app.tool()
+def select_flight(flight_id: str) -> dict:
+    app.set_state("selected_flight", flight_id)
+    return {"selected": flight_id}
+
+@app.tool()
+def select_hotel(hotel_id: str) -> dict:
+    app.set_state("selected_hotel", hotel_id)
+    return {"selected": hotel_id}
+
+@app.tool()
+def book_trip(payment: str) -> dict:
+    flight = app.get_state("selected_flight")
+    hotel = app.get_state("selected_hotel")
+    return {"booking": {"flight": flight, "hotel": hotel}}
+```
+
+### Guard Pattern
+
+Prevent actions unless prerequisites are met:
+
+```python
+@app.tool()
+def checkout(payment_method: str) -> dict:
+    cart = app.get_state("cart", [])
+    if not cart:
+        return {"error": "Cart is empty. Add items first."}
+    return {"order_id": "ORD-123", "items": cart}
+```
