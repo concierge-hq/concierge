@@ -1,1 +1,1 @@
-concierge-sdk>=0.6.0
+concierge-sdk>=0.6.4
