@@ -39,7 +39,7 @@
     "products": [
       {
         "product": "Concierge",
-        "description": "Production-grade MCP framework",
+        "description": "The framework to build production-grade MCP apps",
         "groups": [
           {
             "group": "Welcome",
