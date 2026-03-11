@@ -16,7 +16,7 @@ MCP is to AI tools what HTTP is to the web:a shared protocol that means you buil
 
 Before MCP, every AI integration was custom. Each LLM needed its own glue code to talk to your API.
 
-```mermaid
+```mermaid actions={false}
 graph LR
     subgraph Without MCP
         C1[Claude] -->|custom code| A1[Your API]
@@ -24,7 +24,7 @@ graph LR
     end
 ```
 
-```mermaid
+```mermaid actions={false}
 graph LR
     subgraph With MCP
         C2[Claude] --> P[MCP Protocol]
@@ -45,7 +45,7 @@ MCP has three core primitives:
 | **Resources** | Read-only data the LLM can access | Database schemas, config files, API docs |
 | **Prompts** | Reusable message templates | "Summarize this document", "Write a SQL query for..." |
 
-```mermaid
+```mermaid actions={false}
 sequenceDiagram
     participant User
     participant LLM as AI Model (Client)

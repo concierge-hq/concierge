@@ -73,7 +73,7 @@ app.transitions = {
 }
 ```
 
-```mermaid
+```mermaid actions={false}
 graph LR
     A[preflight] --> B[drain]
     B --> C[backup]
@@ -102,7 +102,7 @@ When stages are defined, Concierge automatically adds two tools:
 
 Here's what happens when the agent calls `proceed_to_next_stage("cart")`:
 
-```mermaid
+```mermaid actions={false}
 sequenceDiagram
     participant Agent
     participant Concierge
@@ -131,7 +131,7 @@ app.transitions = {
 }
 ```
 
-```mermaid
+```mermaid actions={false}
 graph LR
     A[browse] --> B[cart]
     B --> A
