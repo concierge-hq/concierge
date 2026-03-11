@@ -17,7 +17,7 @@ Standard MCP servers expose **every tool at once**. For a server with 50 tools, 
 
 Concierge is a **production MCP framework** that wraps your tools with structure. It's a drop-in replacement for FastMCP that adds four capabilities:
 
-```mermaid
+```mermaid actions={false}
 graph LR
     A[Your Tools] --> B[Concierge]
     B --> C[Progressive Disclosure]
@@ -43,7 +43,7 @@ Concierge:       LLM sees 3 tools  → picks right one → success
 
 Define **stages** (groups of tools) and **transitions** (allowed paths between stages). The LLM can only move forward through your defined flow:
 
-```mermaid
+```mermaid actions={false}
 graph LR
     Browse["🔍 Browse<br/><i>search_products</i>"] --> Cart["🛒 Cart<br/><i>add_to_cart, remove_item</i>"]
     Cart --> Browse

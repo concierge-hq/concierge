@@ -10,7 +10,7 @@ A **backend** (also called a provider mode) controls **how your tools are presen
 
 When an LLM connects to your MCP server, it calls `list_tools()` to discover what's available. The backend determines what comes back:
 
-```mermaid
+```mermaid actions={false}
 graph LR
     A[LLM calls list_tools] --> B[Backend]
     B -->|Plain| C["All 50 tools returned"]
