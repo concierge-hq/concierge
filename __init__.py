@@ -22,6 +22,7 @@ from concierge.adapters.raw_server_adapter import RawServerAdapter
 from concierge.state import get_default_backend
 from concierge.state.base import StateBackend
 from concierge.backends.code_backend import CodeBackend
+from concierge.security.moderation import ContentModerator, ModerationConfig
 from mcp.server.lowlevel.server import request_ctx
 
 
@@ -87,6 +88,7 @@ class Concierge:
         state_backend: Optional[StateBackend] = None,
         workflow_instructions: Optional[str] = None,
         upstream_servers: Optional[List[str]] = None,
+        content_moderation: Optional[ModerationConfig] = None,
         **fastmcp_kwargs,
     ):
         if isinstance(server, FastMCP):
@@ -126,6 +128,12 @@ class Concierge:
         self._state = state_backend or get_default_backend()
 
         self._upstream_servers = upstream_servers or []
+
+        # Content moderation for upstream tool I/O
+        if content_moderation and content_moderation.enabled:
+            self._moderator = ContentModerator(content_moderation)
+        else:
+            self._moderator = None
 
         self._stages: Dict[str, List[str]] = {}  # stage_name -> [tool_names]
         self._transitions: Dict[str, List[str]] = {}  # stage_name -> [next_stages]

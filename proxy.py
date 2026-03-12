@@ -252,6 +252,14 @@ class SessionPool:
             await self.cleanup_session(session_id)
 
 
+def _extract_result_text(result: CallToolResult) -> str:
+    parts = []
+    for content in result.content or []:
+        if hasattr(content, "text"):
+            parts.append(content.text)
+    return "\n".join(parts)
+
+
 def install_proxy_handlers(concierge_instance) -> None:
     """Install protocol-level handlers that forward to upstream servers."""
     upstream_urls = concierge_instance._upstream_servers
@@ -307,6 +315,26 @@ def install_proxy_handlers(concierge_instance) -> None:
 
     original_call_tool = handlers.get(types.CallToolRequest)
 
+    moderator = concierge_instance._moderator
+
+    async def _moderate(content, tool_name: str) -> Optional[types.ServerResult]:
+        if not moderator:
+            return None
+        text = moderator.serialize(content) if not isinstance(content, str) else content
+        allowed, reason = await moderator.check(text)
+        if allowed:
+            return None
+        return types.ServerResult(
+            CallToolResult(
+                content=[
+                    types.TextContent(
+                        type="text", text=f"[BLOCKED] '{tool_name}': {reason}"
+                    )
+                ],
+                isError=True,
+            )
+        )
+
     async def _handle_call_tool(req: types.CallToolRequest) -> types.ServerResult:
         name = req.params.name
         arguments = req.params.arguments or {}
@@ -314,9 +342,15 @@ def install_proxy_handlers(concierge_instance) -> None:
         state = await _get_state()
         conn = state.tool_to_conn.get(name)
         if conn:
+            blocked = await _moderate(arguments, name)
+            if blocked:
+                return blocked
+
             upstream_name = state.tool_to_upstream_name.get(name, name)
             result = await conn.call_tool(upstream_name, arguments)
-            return types.ServerResult(result)
+
+            blocked = await _moderate(_extract_result_text(result), name)
+            return blocked if blocked else types.ServerResult(result)
 
         if original_call_tool:
             return await original_call_tool(req)
