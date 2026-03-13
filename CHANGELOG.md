@@ -7,6 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Changed
-- [#67](https://github.com/concierge-hq/concierge/pull/67) (#66) v0.11 Pass user defined kwargs to native Concierge apps (@ArnavBalyan)
+### Added
+- [#74](https://github.com/concierge-hq/concierge/pull/74) (#73) v0.12 Add support for moderation for trusted and virtual (untrusted) servers (@ArnavBalyan)
 
