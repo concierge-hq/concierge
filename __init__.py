@@ -581,6 +581,14 @@ class Concierge:
                     if ctx and ctx.request
                     else "unknown"
                 )
+                client_name = None
+                if (
+                    ctx
+                    and ctx.session
+                    and ctx.session.client_params
+                    and ctx.session.client_params.clientInfo
+                ):
+                    client_name = ctx.session.client_params.clientInfo.name
                 start = time.perf_counter()
                 is_error, error_msg = False, None
                 try:
@@ -596,6 +604,7 @@ class Concierge:
                         duration_ms=int((time.perf_counter() - start) * 1000),
                         is_error=is_error,
                         error_message=error_msg,
+                        client=client_name,
                     )
 
             handlers[types.CallToolRequest] = wrapped_call
@@ -613,6 +622,14 @@ class Concierge:
                     if ctx and ctx.request
                     else "unknown"
                 )
+                client_name = None
+                if (
+                    ctx
+                    and ctx.session
+                    and ctx.session.client_params
+                    and ctx.session.client_params.clientInfo
+                ):
+                    client_name = ctx.session.client_params.clientInfo.name
                 start = time.perf_counter()
                 is_error, error_msg = False, None
                 try:
@@ -628,6 +645,7 @@ class Concierge:
                         duration_ms=int((time.perf_counter() - start) * 1000),
                         is_error=is_error,
                         error_message=error_msg,
+                        client=client_name,
                     )
 
             handlers[types.ReadResourceRequest] = wrapped_read

@@ -29,6 +29,7 @@ class MCPEvent:
     duration_ms: Optional[int] = None
     is_error: bool = False
     error_message: Optional[str] = None
+    client: Optional[str] = None
     timestamp: str = ""
 
     def __post_init__(self):
