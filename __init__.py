@@ -601,6 +601,7 @@ class Concierge:
                         "mcp:tools/call",
                         session_id=session_id,
                         resource_name=req.params.name,
+                        arguments=req.params.arguments,
                         duration_ms=int((time.perf_counter() - start) * 1000),
                         is_error=is_error,
                         error_message=error_msg,
