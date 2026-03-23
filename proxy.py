@@ -287,6 +287,31 @@ def install_proxy_handlers(concierge_instance) -> None:
         return state
 
     original_list_tools = handlers.get(types.ListToolsRequest)
+    tool_patches = concierge_instance._tool_patches
+
+    def _apply_patches(tool: MCPTool) -> None:
+        for patch in tool_patches:
+            if patch["tool_name"] != tool.name:
+                continue
+            pt = patch["patch_type"]
+            val = patch["value"]
+            if pt == "tool_description":
+                tool.description = val
+            elif pt == "param_description":
+                param = patch["param_name"]
+                props = tool.inputSchema.get("properties", {})
+                if param in props:
+                    props[param]["description"] = val
+            elif pt == "param_required":
+                param = patch["param_name"]
+                req = tool.inputSchema.setdefault("required", [])
+                if param not in req:
+                    req.append(param)
+            elif pt == "param_enum":
+                param = patch["param_name"]
+                props = tool.inputSchema.get("properties", {})
+                if param in props:
+                    props[param]["enum"] = val
 
     async def _handle_list_tools(req: types.ListToolsRequest) -> types.ServerResult:
         local_tools = []
@@ -301,6 +326,8 @@ def install_proxy_handlers(concierge_instance) -> None:
             try:
                 tools = await conn.list_tools()
                 for tool in tools:
+                    if tool_patches:
+                        _apply_patches(tool)
                     upstream_tools.append(tool)
                     state.tool_to_conn[tool.name] = conn
                     state.tool_to_upstream_name[tool.name] = tool.name
