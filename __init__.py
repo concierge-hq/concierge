@@ -575,6 +575,8 @@ class Concierge:
 
             async def wrapped_call(req: types.CallToolRequest) -> types.ServerResult:
                 metrics.ensure_started()
+                ctx = request_ctx.get()
+                session_id = ctx.request.headers.get("mcp-session-id", "unknown") if ctx and ctx.request else "unknown"
                 start = time.perf_counter()
                 is_error, error_msg = False, None
                 try:
@@ -585,6 +587,7 @@ class Concierge:
                 finally:
                     metrics.track(
                         "mcp:tools/call",
+                        session_id=session_id,
                         resource_name=req.params.name,
                         duration_ms=int((time.perf_counter() - start) * 1000),
                         is_error=is_error,
@@ -600,6 +603,8 @@ class Concierge:
                 req: types.ReadResourceRequest,
             ) -> types.ServerResult:
                 metrics.ensure_started()
+                ctx = request_ctx.get()
+                session_id = ctx.request.headers.get("mcp-session-id", "unknown") if ctx and ctx.request else "unknown"
                 start = time.perf_counter()
                 is_error, error_msg = False, None
                 try:
@@ -610,6 +615,7 @@ class Concierge:
                 finally:
                     metrics.track(
                         "mcp:resources/read",
+                        session_id=session_id,
                         resource_name=str(req.params.uri),
                         duration_ms=int((time.perf_counter() - start) * 1000),
                         is_error=is_error,
