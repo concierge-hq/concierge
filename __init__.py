@@ -89,6 +89,7 @@ class Concierge:
         workflow_instructions: Optional[str] = None,
         upstream_servers: Optional[List[str]] = None,
         content_moderation: Optional[ModerationConfig] = None,
+        tool_patches: Optional[List[Dict[str, Any]]] = None,
         **fastmcp_kwargs,
     ):
         if isinstance(server, FastMCP):
@@ -128,6 +129,7 @@ class Concierge:
         self._state = state_backend or get_default_backend()
 
         self._upstream_servers = upstream_servers or []
+        self._tool_patches = tool_patches or []
 
         # Content moderation for upstream tool I/O
         if content_moderation and content_moderation.enabled:
