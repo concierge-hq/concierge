@@ -26,7 +26,7 @@ postgres = [
 concierge = "concierge_cli:main"
 
 [tool.setuptools]
-packages = ["concierge", "concierge.backends", "concierge.core", "concierge.adapters", "concierge.state", "concierge.examples", "concierge.examples.mysql_migration", "concierge.examples.mysql_migration.code", "concierge.examples.mysql_migration.flat", "concierge.examples.mysql_migration.staged", "concierge.examples.mysql_migration.plan", "concierge_cli"]
+packages = ["concierge", "concierge.backends", "concierge.core", "concierge.adapters", "concierge.state", "concierge.security", "concierge.examples", "concierge.examples.mysql_migration", "concierge.examples.mysql_migration.code", "concierge.examples.mysql_migration.flat", "concierge.examples.mysql_migration.staged", "concierge.examples.mysql_migration.plan", "concierge_cli"]
 package-dir = {"concierge" = ".", "concierge_cli" = "./concierge_cli"}
 include-package-data = true
 
