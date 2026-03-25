@@ -142,6 +142,42 @@ class Concierge:
         self._default_stage: Optional[str] = None  # First stage (for new sessions)
         self._enforce_completion = True  # Require LLM to reach terminal stage
 
+    @classmethod
+    def from_openapi(
+        cls,
+        openapi_spec: dict,
+        *,
+        name: str = "OpenAPI Server",
+        config: Optional[Config] = None,
+        **kwargs,
+    ) -> "Concierge":
+        """Create a Concierge server from an OpenAPI specification.
+
+        Requires the `fastmcp` package: pip install concierge-sdk[openapi]
+
+        Args:
+            openapi_spec: OpenAPI schema as a dictionary
+            name: Name for the MCP server
+            config: Concierge config (provider type, etc.)
+            **kwargs: Additional kwargs passed to Concierge()
+        """
+        try:
+            from fastmcp import FastMCP as StandaloneFastMCP
+        except ImportError:
+            raise ImportError(
+                "fastmcp is required for OpenAPI support. "
+                "Install it with: pip install concierge-sdk[openapi]"
+            )
+
+        standalone = StandaloneFastMCP.from_openapi(openapi_spec, name=name)
+
+        # The standalone FastMCP exposes .http_app() but not
+        # .streamable_http_app(). We store it and override
+        # streamable_http_app to use the standalone's app + telemetry.
+        instance = cls(name, config=config or Config(), **kwargs)
+        instance._openapi_standalone = standalone
+        return instance
+
     @property
     def enforce_completion(self) -> bool:
         """If True, instruct LLM that it must continue until reaching a terminal stage."""
@@ -659,12 +695,65 @@ class Concierge:
         return self._server.run(*args, **kwargs)
 
     def streamable_http_app(self, **kwargs):
+        # OpenAPI path: use standalone fastmcp's app with telemetry
+        if hasattr(self, "_openapi_standalone"):
+            standalone = self._openapi_standalone
+            app = standalone.http_app()
+
+            # Wire telemetry into the standalone server's request handlers
+            if METRICS_ENABLED:
+                handlers = standalone._mcp_server.request_handlers
+
+                if types.CallToolRequest in handlers:
+                    original = handlers[types.CallToolRequest]
+
+                    async def wrapped_call(
+                        req: types.CallToolRequest,
+                    ) -> types.ServerResult:
+                        metrics.ensure_started()
+                        ctx = request_ctx.get()
+                        session_id = (
+                            ctx.request.headers.get("mcp-session-id", "unknown")
+                            if ctx and ctx.request
+                            else "unknown"
+                        )
+                        client_name = None
+                        if (
+                            ctx
+                            and ctx.session
+                            and ctx.session.client_params
+                            and ctx.session.client_params.clientInfo
+                        ):
+                            client_name = ctx.session.client_params.clientInfo.name
+                        start = time.perf_counter()
+                        is_error, error_msg = False, None
+                        try:
+                            return await original(req)
+                        except Exception as e:
+                            is_error, error_msg = True, str(e)
+                            raise
+                        finally:
+                            metrics.track(
+                                "mcp:tools/call",
+                                session_id=session_id,
+                                resource_name=req.params.name,
+                                arguments=req.params.arguments,
+                                duration_ms=int((time.perf_counter() - start) * 1000),
+                                is_error=is_error,
+                                error_message=error_msg,
+                                client=client_name,
+                            )
+
+                    handlers[types.CallToolRequest] = wrapped_call
+                metrics.start()
+
+            return app
+
         self._finalize()
         metrics.start()
         try:
             return self._server.streamable_http_app(**kwargs)
         except TypeError:
-            # Older mcp versions don't support kwargs like allowed_hosts
             return self._server.streamable_http_app()
 
     def widget(
