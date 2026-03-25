@@ -594,14 +594,15 @@ class Concierge:
         self._setup_resource_handler()
         self._setup_read_resource_handler()
         self._setup_staged_tools()
-        self._setup_metrics()
 
-        # Install proxy LAST — it wraps the final handlers so it can
-        # fall through to local tools/resources/prompts correctly.
+        # Install proxy before metrics — proxy replaces handlers,
+        # metrics wraps them, so metrics must be outermost.
         if self._upstream_servers:
             from concierge.proxy import install_proxy_handlers
 
             install_proxy_handlers(self)
+
+        self._setup_metrics()
 
     def _setup_metrics(self):
         if not METRICS_ENABLED:
