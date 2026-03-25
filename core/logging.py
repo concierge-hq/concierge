@@ -118,15 +118,35 @@ class _JSONFormatter(logging.Formatter):
 
 
 class _LogStream:
-    """Captures stdout/stderr writes and routes them through Python logging."""
+    """Captures stdout/stderr writes and routes them through Python logging.
 
-    def __init__(self, logger: logging.Logger, level: int):
+    Detects log level prefixes (e.g. 'INFO:', 'ERROR:', 'WARNING:') in the
+    message and uses the appropriate level instead of the default.
+    """
+
+    _LEVEL_MAP = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "WARN": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+
+    def __init__(self, logger: logging.Logger, default_level: int):
         self._logger = logger
-        self._level = level
+        self._default_level = default_level
 
     def write(self, msg: str):
-        if msg.strip():
-            self._logger.log(self._level, msg.strip())
+        stripped = msg.strip()
+        if not stripped:
+            return
+        level = self._default_level
+        for prefix, lvl in self._LEVEL_MAP.items():
+            if stripped.startswith(prefix + ":") or stripped.startswith(prefix + " "):
+                level = lvl
+                break
+        self._logger.log(level, stripped)
 
     def flush(self):
         pass
