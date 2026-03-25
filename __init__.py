@@ -18,7 +18,7 @@ from concierge.backends.vanilla_backend import VanillaBackend
 from concierge.backends.plan_backend import PlanBackend
 from concierge.core.widget import Widget, WidgetMode
 from concierge.core.telemetry import metrics, ENABLED as METRICS_ENABLED
-from concierge.core.logging import ConciergeLogger, RequestContext
+from concierge.core.logging import ConciergeLogger, Heartbeat, RequestContext
 from concierge.adapters.raw_server_adapter import RawServerAdapter
 from concierge.state import get_default_backend
 from concierge.state.base import StateBackend
@@ -701,6 +701,18 @@ class Concierge:
         metrics.start()
         return self._server.run(*args, **kwargs)
 
+    @staticmethod
+    def _wrap_with_heartbeat(app):
+        """Wrap an ASGI app to start the heartbeat on startup."""
+        original_app = app
+
+        async def wrapper(scope, receive, send):
+            if scope["type"] == "lifespan":
+                Heartbeat.start()
+            return await original_app(scope, receive, send)
+
+        return wrapper
+
     def streamable_http_app(self, **kwargs):
         ConciergeLogger.configure()
         # OpenAPI path: use standalone fastmcp's app with telemetry
@@ -755,14 +767,15 @@ class Concierge:
                     handlers[types.CallToolRequest] = wrapped_call
                 metrics.start()
 
-            return app
+            return self._wrap_with_heartbeat(app)
 
         self._finalize()
         metrics.start()
         try:
-            return self._server.streamable_http_app(**kwargs)
+            app = self._server.streamable_http_app(**kwargs)
         except TypeError:
-            return self._server.streamable_http_app()
+            app = self._server.streamable_http_app()
+        return self._wrap_with_heartbeat(app)
 
     def widget(
         self,

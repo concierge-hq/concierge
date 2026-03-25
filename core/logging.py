@@ -16,10 +16,12 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
 import sys
+import time
 from contextvars import ContextVar
 from typing import Optional
 
@@ -207,3 +209,51 @@ class ConciergeLogger:
         logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
         cls._configured = True
+
+
+class Heartbeat:
+    """Periodic heartbeat logger for liveness visibility.
+
+    Emits a structured log line at a configurable interval so that log
+    streams never appear dead during idle periods.
+
+    Configuration:
+        CONCIERGE_HEARTBEAT_INTERVAL: Seconds between heartbeats (default 60, 0 to disable).
+
+    Usage:
+        Called automatically from Concierge.streamable_http_app() / run().
+        Must be called from within a running asyncio event loop.
+    """
+
+    _task: Optional[asyncio.Task] = None
+    _start_time: float = 0
+    _logger = logging.getLogger("concierge.heartbeat")
+
+    @classmethod
+    def start(cls):
+        """Start the heartbeat background task. Safe to call multiple times."""
+        if cls._task is not None:
+            return
+
+        interval = int(os.getenv("CONCIERGE_HEARTBEAT_INTERVAL", "60"))
+        if interval <= 0:
+            return
+
+        cls._start_time = time.monotonic()
+        cls._task = asyncio.get_running_loop().create_task(cls._run(interval))
+
+    @classmethod
+    async def _run(cls, interval: int):
+        while True:
+            await asyncio.sleep(interval)
+            cls._logger.info("alive | uptime=%s", cls._format_uptime())
+
+    @classmethod
+    def _format_uptime(cls) -> str:
+        secs = int(time.monotonic() - cls._start_time)
+        if secs < 120:
+            return f"{secs}s"
+        if secs < 7200:
+            return f"{secs // 60}m"
+        hours, remainder = divmod(secs, 3600)
+        return f"{hours}h{remainder // 60}m"
