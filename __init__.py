@@ -707,7 +707,9 @@ class Concierge:
                 if types.CallToolRequest in handlers:
                     original = handlers[types.CallToolRequest]
 
-                    async def wrapped_call(req: types.CallToolRequest) -> types.ServerResult:
+                    async def wrapped_call(
+                        req: types.CallToolRequest,
+                    ) -> types.ServerResult:
                         metrics.ensure_started()
                         ctx = request_ctx.get()
                         session_id = (
