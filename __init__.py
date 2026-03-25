@@ -18,6 +18,7 @@ from concierge.backends.vanilla_backend import VanillaBackend
 from concierge.backends.plan_backend import PlanBackend
 from concierge.core.widget import Widget, WidgetMode
 from concierge.core.telemetry import metrics, ENABLED as METRICS_ENABLED
+from concierge.core.logging import ConciergeLogger, RequestContext
 from concierge.adapters.raw_server_adapter import RawServerAdapter
 from concierge.state import get_default_backend
 from concierge.state.base import StateBackend
@@ -614,6 +615,7 @@ class Concierge:
 
             async def wrapped_call(req: types.CallToolRequest) -> types.ServerResult:
                 metrics.ensure_started()
+                RequestContext.set(tool=req.params.name, method="tools/call")
                 ctx = request_ctx.get()
                 session_id = (
                     ctx.request.headers.get("mcp-session-id", "unknown")
@@ -636,6 +638,7 @@ class Concierge:
                     is_error, error_msg = True, str(e)
                     raise
                 finally:
+                    RequestContext.clear()
                     metrics.track(
                         "mcp:tools/call",
                         session_id=session_id,
@@ -656,6 +659,7 @@ class Concierge:
                 req: types.ReadResourceRequest,
             ) -> types.ServerResult:
                 metrics.ensure_started()
+                RequestContext.set(method="resources/read")
                 ctx = request_ctx.get()
                 session_id = (
                     ctx.request.headers.get("mcp-session-id", "unknown")
@@ -678,6 +682,7 @@ class Concierge:
                     is_error, error_msg = True, str(e)
                     raise
                 finally:
+                    RequestContext.clear()
                     metrics.track(
                         "mcp:resources/read",
                         session_id=session_id,
@@ -691,11 +696,13 @@ class Concierge:
             handlers[types.ReadResourceRequest] = wrapped_read
 
     def run(self, *args, **kwargs):
+        ConciergeLogger.configure()
         self._finalize()
         metrics.start()
         return self._server.run(*args, **kwargs)
 
     def streamable_http_app(self, **kwargs):
+        ConciergeLogger.configure()
         # OpenAPI path: use standalone fastmcp's app with telemetry
         if hasattr(self, "_openapi_standalone"):
             standalone = self._openapi_standalone
