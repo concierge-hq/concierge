@@ -11,7 +11,7 @@
 <strong>The fabric for reliable MCP servers and AI applications.</strong>
 
 [![Docs](https://img.shields.io/badge/docs-getconcierge.app-blue)](https://docs.getconcierge.app)
-[![Discord](https://img.shields.io/badge/community-discord-5865F2?logo=discord&logoColor=white)](https://discord.gg/bfT3VkhF)
+[![Discord](https://img.shields.io/badge/community-discord-5865F2?logo=discord&logoColor=white)](https://discord.gg/Y3ayRa33Pg)
 [![PyPI - Version](https://img.shields.io/pypi/v/concierge-sdk.svg)](https://pypi.org/project/concierge-sdk)
 [![Python](https://img.shields.io/badge/python-3.9+-8B5CF6?logo=python&logoColor=white)](https://pypi.org/project/concierge-sdk)
 
@@ -208,7 +208,7 @@ Full guides, API reference, and deployment patterns are available at **[docs.get
 
 ## Community
 
-- [Discord](https://discord.gg/bfT3VkhF): Ask questions, share what you're building, get help.
+- [Discord](https://discord.gg/Y3ayRa33Pg): Ask questions, share what you're building, get help.
 - [Issues](https://github.com/concierge-hq/concierge/issues): Report bugs or request features.
 - [Discussions](https://github.com/concierge-hq/concierge/discussions): Longer form discussions and RFCs.
 
