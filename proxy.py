@@ -39,7 +39,12 @@ class UpstreamConnection:
     the MCP server's request-handler cancel scopes.
     """
 
-    def __init__(self, url: str, notification_callback=None, auth_headers: Optional[Dict[str, str]] = None):
+    def __init__(
+        self,
+        url: str,
+        notification_callback=None,
+        auth_headers: Optional[Dict[str, str]] = None,
+    ):
         self.url = url
         self._session: Optional[ClientSession] = None
         self._task: Optional[asyncio.Task] = None
@@ -57,7 +62,12 @@ class UpstreamConnection:
         client's token directly, Concierge never inspects it.
         """
         import httpx
-        http_client = httpx.AsyncClient(headers=self._auth_headers) if self._auth_headers else None
+
+        http_client = (
+            httpx.AsyncClient(headers=self._auth_headers)
+            if self._auth_headers
+            else None
+        )
         try:
             async with streamable_http_client(self.url, http_client=http_client) as (
                 read,
@@ -205,7 +215,9 @@ class SessionPool:
             self._sessions[session_id] = SessionState()
         return self._sessions[session_id]
 
-    async def get_session_state(self, session_id: str, auth_headers: Optional[Dict[str, str]] = None) -> SessionState:
+    async def get_session_state(
+        self, session_id: str, auth_headers: Optional[Dict[str, str]] = None
+    ) -> SessionState:
         state = self._get_or_create(session_id)
         # Only connect URLs that have never been connected for this session.
         # If a connection drops, we do NOT silently reconnect — a new connection
@@ -220,7 +232,8 @@ class SessionPool:
 
             start = _time.time()
             conn = UpstreamConnection(
-                url, notification_callback=state._forward_notification,
+                url,
+                notification_callback=state._forward_notification,
                 auth_headers=auth_headers,
             )
             try:
@@ -303,7 +316,9 @@ def install_proxy_handlers(concierge_instance) -> None:
             auth_value = ctx.request.headers.get("authorization")
             if auth_value:
                 auth_headers = {"Authorization": auth_value}
-        state = await pool.get_session_state(_get_session_id(), auth_headers=auth_headers)
+        state = await pool.get_session_state(
+            _get_session_id(), auth_headers=auth_headers
+        )
         state._server_session = ctx.session
         return state
 
