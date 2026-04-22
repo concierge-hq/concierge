@@ -93,15 +93,15 @@ http_app = app.streamable_http_app()
 if __name__ == "__main__":
     import uvicorn
     from starlette.middleware.cors import CORSMiddleware
-    
-    http_app.add_middleware(
-        CORSMiddleware,
+
+    http_app = CORSMiddleware(
+        http_app,
         allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["mcp-session-id"],
     )
-    
+
     port = int(os.getenv("PORT", 8000))
     print(f"Starting server on http://localhost:{{port}}/mcp", flush=True)
     uvicorn.run(http_app, host="0.0.0.0", port=port)

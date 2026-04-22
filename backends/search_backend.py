@@ -89,12 +89,12 @@ class SearchBackend(BaseProvider):
                 self.icons = None
                 self._func = func
 
-            async def run(self, arguments):
+            async def run(self, arguments, **kwargs):
                 return await self._func(**arguments)
 
         async def search_tools(query: str):
             results = self._search(query, max_k)
-            return [to_mcp_tool(t) for t in results]
+            return {"tools": [to_mcp_tool(t) for t in results]}
 
         async def call_tool(tool_name: str, arguments: dict):
             tool = next((t for t in tools_ref if t.name == tool_name), None)

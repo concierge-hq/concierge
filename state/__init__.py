@@ -1,4 +1,5 @@
 import os
+import sys
 
 # Environment variable for state backend URL
 STATE_URL = os.getenv("CONCIERGE_STATE_URL")
@@ -9,7 +10,7 @@ def get_default_backend():
     if not STATE_URL:
         from concierge.state.memory import InMemoryBackend
 
-        print("State backend: InMemoryBackend")
+        print("State backend: InMemoryBackend", file=sys.stderr)
         return InMemoryBackend()
 
     if STATE_URL.startswith("postgresql://") or STATE_URL.startswith("postgres://"):
@@ -17,7 +18,7 @@ def get_default_backend():
 
         # Mask password in log
         masked_url = STATE_URL.split("@")[-1] if "@" in STATE_URL else STATE_URL
-        print(f"State backend: PostgresBackend ({masked_url})")
+        print(f"State backend: PostgresBackend ({masked_url})", file=sys.stderr)
         return PostgresBackend(STATE_URL)
 
     raise ValueError(

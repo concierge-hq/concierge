@@ -5,7 +5,7 @@ import json
 from concierge import Concierge
 from concierge.examples.tools import register_tools
 
-upstream = json.loads(os.getenv("UPSTREAM_SERVERS", '["https://mcp.exa.ai/mcp"]'))
+upstream = json.loads(os.getenv("UPSTREAM_SERVERS", "[]"))
 
 app = Concierge("mysql-migration-flat", host="0.0.0.0", upstream_servers=upstream)
 register_tools(app)
@@ -17,8 +17,8 @@ if __name__ == "__main__":
     import uvicorn
     from starlette.middleware.cors import CORSMiddleware
 
-    http_app.add_middleware(
-        CORSMiddleware,
+    http_app = CORSMiddleware(
+        http_app,
         allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=["*"],
