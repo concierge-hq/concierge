@@ -18,8 +18,8 @@ if __name__ == "__main__":
     import uvicorn
     from starlette.middleware.cors import CORSMiddleware
 
-    http_app.add_middleware(
-        CORSMiddleware,
+    http_app = CORSMiddleware(
+        http_app,
         allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=["*"],

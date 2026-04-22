@@ -47,7 +47,14 @@ class ProviderType(Enum):
 def _get_provider_class(provider_type: ProviderType):
     """Lazy load provider to avoid importing optional dependencies."""
     if provider_type == ProviderType.SEARCH:
-        from concierge.backends.search_backend import SearchBackend
+        try:
+            from concierge.backends.search_backend import SearchBackend
+        except ImportError as e:
+            raise ImportError(
+                "ProviderType.SEARCH requires the 'all' extras "
+                "(sentence-transformers, numpy). Install with: "
+                "pip install 'concierge-sdk[all]'"
+            ) from e
 
         return SearchBackend
     if provider_type == ProviderType.PLAN:
